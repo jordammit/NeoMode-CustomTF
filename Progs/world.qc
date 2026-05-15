@@ -393,6 +393,12 @@ void() worldspawn =
 
 	//- OfN - Flare exp sound
 	precache_sound2 ("items/flare1.wav");
+    
+    //STAL: force download neo skinz
+    //if (neo) {
+        precache_file2("skins/neo.pcx");
+        precache_file2("skins/asmith.pcx");
+    //}
 
 	// Team Fortress Weapon MDLs
 	//precache_model2("progs/sight.spr"); // OfN Moved to megatf source

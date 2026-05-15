@@ -4,12 +4,14 @@
 =========================================================//
  ProZac Message Of The Day (MOTD) and un/related stuff :)
 =========================================================*/
-
-#define MSG_OFTEN_CUTFVERSION "Running progs build 272 Û02¯02¯2009İ\n"
+                                             // v2605 (-|-) [half-month]
+#define MSG_OFTEN_CUTFVERSION "Running Îåï Íïäå ö”˜’—?ƒ‚\nForked from progs build 272 Û02¯02¯2009İ\n"
 
 #define MSG_INFO "\nType ¢cmd help¢ to see additional client commands.\n"
 
 #define MSG_CUTFVERSION   "ĞÒÏÚÁÃ CustomÔÆ VERSION 02-02-09" //WK Version Number
+
+#define MSG_NEO_ON "\nŸ         Îåï Íïäå Enabled         Ÿ\nŸ "
 
 // PZ: customtf.com hasn't existed for a long time. Changed to: quakeworld.nu/wiki/Prozac-TF
 #define MSG_INTRO  "Welcome to ĞÒÏÚÁÃ CustomÔÆ\na Quake ÔÆ MOD by ShakaUVM\n\nquakeworld®nu¯wiki¯Prozac-TF\n\nŸ\n\n"
@@ -67,7 +69,7 @@ void() PrintProzacIntro =
 
 	//sprint(self, #PRINT_HIGH, #MSG_INFO, "\n",#MSG_OFTEN_CUTFVERSION, "\nŸ ", #MSG_CUTFVERSION, " Ÿ\n       Éîæïòíáôéïî èïíåğáçå:\n     www®telefragged®com¯shaka\nŸ\n\n");
 	// PZ: Changed from www.customtf.org/forums to quakeworld.nu/wiki/Prozac-TF, and added Prozac Discord invitation link.
-	sprint(self, #PRINT_HIGH, #MSG_INFO, "\n",#MSG_OFTEN_CUTFVERSION, "\nŸ ", #MSG_CUTFVERSION, " Ÿ\n          Éîæïòíáôéïî èïíåğáçå:\n       quakeworld®nu¯wiki¯Prozac-TF\n            discord®gg¯fp9sSZ5\nŸ\n\n");
+	sprint(self, #PRINT_HIGH, #MSG_INFO, "\n", #MSG_OFTEN_CUTFVERSION, #MSG_NEO_ON, #MSG_CUTFVERSION, " Ÿ\n          Éîæïòíáôéïî èïíåğáçå:\n       quakeworld®nu¯wiki¯Prozac-TF\n            discord®gg¯fp9sSZ5\nŸ\n");
 
 	// PZ - Attackers Go Red mode
 	if (agr) { AGR_introducePlayer(); sprint(self, #PRINT_HIGH, "\n"); }

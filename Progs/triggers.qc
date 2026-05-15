@@ -32,6 +32,85 @@ void() multi_wait =
 // so wait for the delay time before firing
 void() multi_trigger =
 {
+    // STAL: Bitfield classname filter injection. Detects classnames of entities passing through a maphack'd InitTrigger brush entity.
+    // Set "cns_filter" to the sum of entity types that should activate this trigger.
+    // Example: "cns_filter" "6" allows detpacks (2) + grenades (4)
+    // Search "CNS_PLAYER" in "defs.qc" to find all bitfields.
+    if (self.cns_filter)
+    {
+        local float match;
+        match = 0;
+
+        if ((self.cns_filter & CNS_PLAYER) && other.classname == "player")
+            match = 1;
+        else if ((self.cns_filter & CNS_DETPACK) && other.classname == "detpack")
+            match = 1;
+        else if ((self.cns_filter & CNS_GRENADE) && other.classname == "grenade")
+            match = 1;
+        else if ((self.cns_filter & CNS_PIPEBOMB) && other.classname == "pipebomb")
+            match = 1;
+        else if ((self.cns_filter & CNS_ROCKET) && other.classname == "rocket")
+            match = 1;
+        else if ((self.cns_filter & CNS_SPIKE) && other.classname == "spike")
+            match = 1;
+        else if ((self.cns_filter & CNS_HIPLASER) && other.classname == "hiplaser")
+            match = 1;
+        else if ((self.cns_filter & CNS_AMMOBOX) && other.classname == "ammobox")
+            match = 1;
+        else if ((self.cns_filter & CNS_FORCEFIELD) && other.classname == "force_field")
+            match = 1;
+        else if ((self.cns_filter & CNS_SENSOR) && other.classname == "building_sensor")
+            match = 1;
+
+        if (!match)
+            return;
+    }
+    
+    // STAL: Set self.enemy since InitTrigger calls multi_trigger
+    // directly as a touch function, bypassing multi_touch which
+    // normally does this.
+    if (self.classname == "InitTrigger")
+        self.enemy = other;
+    
+    // STAL: Force detpack timer override when touching this trigger.
+    // Set "det_force_timer" on the brush entity to the desired seconds.
+    // Required for Defuse gameplay mode
+    if (self.det_force_timer && other.classname == "detpack")
+    {
+        if (other.weaponmode != 99)
+        {
+            local entity countd;
+
+            other.weaponmode = 99;
+            other.nextthink = time + self.det_force_timer;
+
+            countd = find(world, classname, "countdown_timer");
+            while (countd)
+            {
+                if (countd.enemy == other)
+                {
+                    if (self.det_force_timer <= 10)
+                    {
+                        countd.health = self.det_force_timer;
+                        countd.nextthink = time + 1;
+                    }
+                    else
+                    {
+                        countd.health = 9;
+                        countd.nextthink = time + self.det_force_timer - 10;
+                    }
+                    countd = world;
+                }
+                else
+                {
+                    countd = find(countd, classname, "countdown_timer");
+                }
+            }
+
+            bprint(#PRINT_HIGH, "Detpack detonation time adjusted to 20 seconds.\n");
+        }
+    }
+    
 	if (self.nextthink > time)
 	{
 		return; 	// allready been triggered

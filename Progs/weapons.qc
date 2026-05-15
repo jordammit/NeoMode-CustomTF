@@ -130,6 +130,9 @@ void() custom_lay;
 //CH dropitems
 float() TeamFortress_DropItems;
 
+//STAL: This will blow the spoots away
+string(float pc) TeamFortress_GetClassName;
+
 //- OfN -
 void(entity player) ActivateHolo;
 void(entity who) MakeMeDebug;
@@ -5602,7 +5605,56 @@ void() DeadImpulses =
 			return;
 		}
 	}
+    
+    //STAL: Allow player to customize a stock class
+    //Requires spawning as that class first... for now >:)
+    //Pre-seeds the custom buy menu with the player's current stock class equipment,
+    //letting them edit/upgrade on top of it instead of starting from scratch.
+    //
+    //EDIT: Commenting this out for now, handling a different way which may or may not be good.
+/*     if (self.impulse == #TF_MODIFY)
+    {
+        local string mst1;
+        local string mst2;
 
+        if (self.playerclass < #PC_SCOUT)
+        {
+            sprint(self, #PRINT_HIGH, "Sorry, you must be a stock class to use this command.\n");
+            self.impulse = 0;
+            return;
+        }
+        if (self.playerclass > #PC_ENGINEER)
+        {
+            sprint(self, #PRINT_HIGH, "Sorry, you must be a stock class to use this command.\n");
+            self.impulse = 0;
+            return;
+        }
+
+        // Set up the respawn-to-modify-menu state. CUSTOM_ON_SPAWN tells
+        // PutClientInServer to call DropToCustomClassGen on next spawn (the
+        // standard mechanism). CUSTOM_MODIFY tells DropToCustomClassGen to
+        // enter preserve mode and pre-fill from the stock loadout.
+        
+        // STAL: capture stock class before switching to PC_CUSTOM.
+        // The snap in DropToCustomClassGen reads this to assign canonical tier
+        // values, because by the time the snap runs, self.max_health/maxspeed
+        // have been clobbered by PutClientInServer.
+        self.modify_origin_class = self.playerclass;
+        self.nextpc = #PC_CUSTOM;
+        self.done_custom = self.done_custom | #CUSTOM_ON_SPAWN;
+        self.done_custom = self.done_custom | #CUSTOM_MODIFY;
+
+        sprint(self, #PRINT_HIGH, "After dying, you will return as a ");
+        mst1 = colstr("Custom ", #COLSTR_RED);
+        sprint(self, #PRINT_HIGH, mst1);
+        mst2 = TeamFortress_GetClassName(self.playerclass);
+        mst2 = colstr(mst2, #COLSTR_RED);
+        sprint(self, #PRINT_HIGH, mst2, "\n");
+
+        self.impulse = 0;
+        return;
+    }
+ */
 	// TeamFortress Show Toggleflag State
 	if (self.impulse == #TF_SHOWTF)
 		TeamFortress_ShowTF();

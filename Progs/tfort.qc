@@ -350,7 +350,9 @@ void() TeamFortress_ChangeClass =
 	TeamFortress_SetSpeed(self);
 	TeamFortress_SetSkin(self);
 	//WK Give them invincibility if they are a normal class or bought it
-	if (self.playerclass >= #PC_SCOUT && self.playerclass <= #PC_RANDOM) {
+    //STAL 26/05/06: No RG for stock classes when Neo Mode is enabled (already 
+    //disabled in custom menu for custom playerclasses)
+	if (self.playerclass >= #PC_SCOUT && self.playerclass <= #PC_RANDOM && !neo) {
 		self.items = self.items + #IT_INVULNERABILITY;
 		self.invincible_time = 1;
 		self.invincible_finished = time + #RESPAWN_GUARD_TIME;
@@ -1941,7 +1943,17 @@ void(entity p) TeamFortress_SetSkin =
 		//WK Figure out what Mr.Custom Should look like
 		if (p.playerclass == #PC_CUSTOM && p.undercover_skin == 0)
 		{
-			p.skin = Return_Custom_Skins(p); //CH
+            if (!neo)
+            {
+                p.skin = Return_Custom_Skins(p); //CH
+            }
+            else
+            {
+                if ( p.team_no == 1 )
+                    setinfo(p, "skin", "neo");
+                else if ( p.team_no == 2 )
+                    setinfo(p, "skin", "asmith");
+            }
 		}
 
 		if ( p.team_no == 4)
@@ -2004,7 +2016,7 @@ void(entity p) TeamFortress_SetSkin =
 				//stuffcmd(p, #TEAM3_ENGINEER_SKIN);
 				setinfo(p, "skin", #TEAM3_ENGINEER_SKIN); // PZ: see above
 		}
-		else if ( p.team_no == 2)
+		else if ( p.team_no == 2 && !neo)
 		{
 			if ( p.skin == #PC_SCOUT )
 				//stuffcmd(p, #TEAM2_SCOUT_SKIN);
@@ -2034,7 +2046,67 @@ void(entity p) TeamFortress_SetSkin =
 				//stuffcmd(p, #TEAM2_ENGINEER_SKIN);
 				setinfo(p, "skin", #TEAM2_ENGINEER_SKIN); // PZ: see above
 		}
-		else // if ( p.team_no == 1)
+        else if ( p.team_no == 2 && neo)
+		{
+			if ( p.skin == #PC_SCOUT )
+				//stuffcmd(p, #TEAM2_SCOUT_SKIN);
+				setinfo(p, "skin", "asmith"); // STAL: neo mode enabled; set correct skin
+			else if ( p.skin == #PC_SNIPER )
+				//stuffcmd(p, #TEAM2_SNIPER_SKIN);
+				setinfo(p, "skin", "asmith"); // STAL: neo mode enabled; set correct skin
+			else if ( p.skin == #PC_SOLDIER )
+				//stuffcmd(p, #TEAM2_SOLDIER_SKIN);
+				setinfo(p, "skin", "asmith"); // STAL: neo mode enabled; set correct skin
+			else if ( p.skin == #PC_DEMOMAN )
+				//stuffcmd(p, #TEAM2_DEMOMAN_SKIN);
+				setinfo(p, "skin", "asmith"); // STAL: neo mode enabled; set correct skin
+			else if ( p.skin == #PC_MEDIC )
+				//stuffcmd(p, #TEAM2_MEDIC_SKIN);
+				setinfo(p, "skin", "asmith"); // STAL: neo mode enabled; set correct skin
+			else if ( p.skin == #PC_HVYWEAP )
+				//stuffcmd(p, #TEAM2_HVYWEAP_SKIN);
+				setinfo(p, "skin", "asmith"); // STAL: neo mode enabled; set correct skin
+			else if ( p.skin == #PC_PYRO )
+				//stuffcmd(p, #TEAM2_PYRO_SKIN);
+				setinfo(p, "skin", "asmith"); // STAL: neo mode enabled; set correct skin
+			else if ( p.skin == #PC_SPY )
+				//stuffcmd(p, #TEAM2_SPY_SKIN);
+				setinfo(p, "skin", "asmith"); // STAL: neo mode enabled; set correct skin
+			else if ( p.skin == #PC_ENGINEER )
+				//stuffcmd(p, #TEAM2_ENGINEER_SKIN);
+				setinfo(p, "skin", "asmith"); // STAL: neo mode enabled; set correct skin
+		}
+        else if ( p.team_no == 1 && neo)
+		{
+			if ( p.skin == #PC_SCOUT )
+				//stuffcmd(p, #TEAM2_SCOUT_SKIN);
+				setinfo(p, "skin", "neo"); // STAL: neo mode enabled; set correct skin
+			else if ( p.skin == #PC_SNIPER )
+				//stuffcmd(p, #TEAM2_SNIPER_SKIN);
+				setinfo(p, "skin", "neo"); // STAL: neo mode enabled; set correct skin
+			else if ( p.skin == #PC_SOLDIER )
+				//stuffcmd(p, #TEAM2_SOLDIER_SKIN);
+				setinfo(p, "skin", "neo"); // STAL: neo mode enabled; set correct skin
+			else if ( p.skin == #PC_DEMOMAN )
+				//stuffcmd(p, #TEAM2_DEMOMAN_SKIN);
+				setinfo(p, "skin", "neo"); // STAL: neo mode enabled; set correct skin
+			else if ( p.skin == #PC_MEDIC )
+				//stuffcmd(p, #TEAM2_MEDIC_SKIN);
+				setinfo(p, "skin", "neo"); // STAL: neo mode enabled; set correct skin
+			else if ( p.skin == #PC_HVYWEAP )
+				//stuffcmd(p, #TEAM2_HVYWEAP_SKIN);
+				setinfo(p, "skin", "neo"); // STAL: neo mode enabled; set correct skin
+			else if ( p.skin == #PC_PYRO )
+				//stuffcmd(p, #TEAM2_PYRO_SKIN);
+				setinfo(p, "skin", "neo"); // STAL: neo mode enabled; set correct skin
+			else if ( p.skin == #PC_SPY )
+				//stuffcmd(p, #TEAM2_SPY_SKIN);
+				setinfo(p, "skin", "neo"); // STAL: neo mode enabled; set correct skin
+			else if ( p.skin == #PC_ENGINEER )
+				//stuffcmd(p, #TEAM2_ENGINEER_SKIN);
+				setinfo(p, "skin", "neo"); // STAL: neo mode enabled; set correct skin
+		}
+		else // if ( p.team_no == 1 && !neo )
 		{
 			if ( p.skin == #PC_SCOUT )
 				//stuffcmd(p, #TEAM1_SCOUT_SKIN);

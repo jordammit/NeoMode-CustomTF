@@ -37,6 +37,8 @@ void (vector org, entity death_owner) spawn_tdeath;
 void(string gibname, float dm, float makecool, float gibskin, float gibkgs, float randorg) ThrowGib;
 void() TeamFortress_SetHealth;
 void() TeamFortress_SetEquipment;
+void() RebuildMaxAmmoFromWeapons; // STAL BACKPORT: defined in client.qc
+float() ComputeLoadoutCost;       // STAL: cost of current loadout for `modify`
 float() W_BestWeapon;
 void() W_SetCurrentAmmo;
 void(entity p) TeamFortress_SetSpeed;
@@ -93,76 +95,823 @@ void (float foo)  DebugSprintFloat =
 	bprint(#PRINT_HIGH,"\n");
 };
 
-void() DropToCustomClassGen =
+//================================================
+// STAL: ComputeLoadoutCost
+//
+// Returns the total custom-menu cost of the player's current loadout, summed
+// from per-item COST_* values. Used by `modify` to charge the stock-class
+// player a deduction equivalent to what a custom-class player would have paid.
+//
+// If sum exceeds custom_money, the player ends up with negative money and
+// must sell items in the menu before finishing.
+//
+// Cost mapping is the COST_* defines in cutfmenu.qc. Items not in the COST_*
+// table (e.g., stock-issue grenades that have no custom equivalent) contribute
+// $0. If COST_* or item-bit defines ever change, this function must be updated.
+//================================================
+float() ComputeLoadoutCost =
 {
+	local float total;
+	total = 0;
+
+	// === Weapons ===
+	if (self.weapons_carried & #WEAP_AUTO_RIFLE)
+		total = total + #COST_SNIPERRIFLE;
+	if (self.weapons_carried & #WEAP_ROCKET_LAUNCHER)
+		total = total + #COST_ROCKETLAUNCHER;
+	if (self.weapons_carried & #WEAP_DAEDALUS)
+		total = total + #COST_DAEDALUS;
+	if (self.weapons_carried & #WEAP_ASSAULT_CANNON)
+		total = total + #COST_ASSAULTCANNON;
+	if (self.weapons_carried & #WEAP_LIGHT_ASSAULT)
+		total = total + #COST_LIGHTASSAULT;
+	if (self.weapons_carried & #WEAP_SUPER_SHOTGUN)
+		total = total + #COST_SUPERSHOTGUN;
+	if (self.weapons_carried & #WEAP_SHOTGUN)
+		total = total + #COST_SHOTGUN;
+	if (self.weapons_carried & #WEAP_GRENADE_LAUNCHER)
+		total = total + #COST_GRENADELAUNCHER;
+	if (self.weapons_carried & #WEAP_LIGHTNING)
+		total = total + #COST_LIGHTNING;
+	if (self.weapons_carried & #WEAP_LASERCANNON)
+		total = total + #COST_LASERCANNON;
+	if (self.weapons_carried & #WEAP_MAUSER)
+		total = total + #COST_MAUSER;
+	if (self.weapons_carried & #WEAP_SNG)
+		total = total + #COST_SNG;
+	if (self.weapons_carried & #WEAP_RAILGUN)
+		total = total + #COST_RAILGUN;
+	if (self.weapons_carried & #WEAP_NAILGUN)
+		total = total + #COST_NAILGUN;
+	if (self.weapons_carried & #WEAP_TRANQ)
+		total = total + #COST_TRANQ;
+	if (self.weapons_carried & #WEAP_MEDIKIT)
+		total = total + #COST_MEDIKIT;
+	if (self.weapons_carried & #WEAP_AIRF)
+		total = total + #COST_AIRF;
+	if (self.weapons_carried & #WEAP_HOOK)
+	{
+		if (!allow_hook)
+			total = total + #COST_HOOK;
+		else if (no_grapple == 1)
+			total = total + #COST_HOOK;
+	}
+	if (self.weapons_carried & #WEAP_INCENDIARY)
+		total = total + #COST_PYROTOYS;     // bundle: INCENDIARY|FLAMETHROWER
+	if (self.weapons_carried & #WEAP_SPANNER)
+		total = total + #COST_SPANNER;
+
+	// === tf_items (NIT_*) ===
+	if (self.tf_items & #NIT_RL_LASER_SIGHT)
+		total = total + #COST_RLASERGUIDED;
+	if (self.tf_items & #NIT_CLUSTER_ROCKETS)
+		total = total + #COST_CLUSTER;
+	if (self.tf_items & #NIT_SCUBA)
+		total = total + #COST_SCUBA;
+	if (self.tf_items & #NIT_CERAMIC)
+		total = total + #COST_CERAMIC;
+	if (self.tf_items & #NIT_GEL)
+		total = total + #COST_GEL;
+	if (self.tf_items & #NIT_ASBESTOS)
+		total = total + #COST_ASBESTOS;
+	if (self.tf_items & #NIT_KEVLAR)
+		total = total + #COST_KEVLAR;
+	if (self.tf_items & #NIT_BLAST)
+		total = total + #COST_BLAST;
+	if (self.tf_items & #NIT_TURRET)
+		total = total + #COST_SENTRYUPGRADE;
+	if (self.tf_items & #NIT_TESLA)
+		total = total + #COST_TESLACOIL;
+	if (self.tf_items & #NIT_DOUBLETESLA)
+		total = total + #COST_TESLACOIL;
+	if (self.tf_items & #NIT_TESLA_UPGRADE)
+		total = total + #COST_TESLAUPGRADE;
+	if (self.tf_items & #NIT_TELEPORTER)
+		total = total + #COST_TELEPORTER;
+	if (self.tf_items & #NIT_AUTOSCANNER)
+		total = total + #COST_AUTOSCANNER;
+	if (self.tf_items & #NIT_SCANNER)
+		total = total + #COST_SCANNER;
+	if (self.tf_items & #NIT_SECURITY_CAMERA)
+		total = total + #COST_SECURITYCAMERA;
+	if (self.tf_items & #NIT_AUTOID)
+		total = total + #COST_AUTOID;
+	if (self.tf_items & #NIT_RESPAWN_GUARD)
+		total = total + #COST_RESPAWNGUARD;
+	if (self.tf_items & #NIT_HOVER_BOOTS)
+		total = total + #COST_HOVERBOOTS;
+	if (self.tf_items & #NIT_HOVER_BOOTS_UPGRADE)
+		total = total + #COST_BOOTUPGRADE;
+	if (self.tf_items & #NIT_AMMO_BACKPACK)
+		total = total + #COST_AMMOBACKPACK;
+	if (self.tf_items & #NIT_AMMO_BANDOLIER)
+		total = total + #COST_AMMOBANDOLIER;
+
+	// === cutf_items (CUTF_*) ===
+	if (self.cutf_items & #CUTF_OTR)
+		total = total + #COST_OTR;
+	if (self.cutf_items & #CUTF_AIRFISTUPGRADE)
+		total = total + #COST_AIRFISTUPGRADE;
+	if (self.cutf_items & #CUTF_KNIFE)
+		total = total + #COST_KNIFE;
+	if (self.cutf_items & #CUTF_FULLARMOUR)
+		total = total + #COST_FULLARMOUR;
+	if (self.cutf_items & #CUTF_TOSSABLEDET)
+		total = total + #COST_TOSSABLEDET;
+	if (self.cutf_items & #CUTF_DETPACK)
+		total = total + #COST_DETPACK;
+	if (self.cutf_items & #CUTF_HOLO)
+		total = total + #COST_HOLO;
+	if (self.cutf_items & #CUTF_CYBERAUG)
+		total = total + #COST_CYBERAUG;
+	if (self.cutf_items & #CUTF_SPY_KIT)
+		total = total + #COST_SPYKIT;
+	if (self.cutf_items & #CUTF_CLIPEXTEND)
+		total = total + #COST_CLIPEXTEND;
+	if (self.cutf_items & #CUTF_SENTRYGUN)
+		total = total + #COST_SENTRYGUN;
+	if (self.cutf_items & #CUTF_DOUBLESENTRY)
+		total = total + #COST_SENTRYGUN;
+	if (self.cutf_items & #CUTF_SENSOR)
+		total = total + #COST_SENSOR;
+	if (self.cutf_items & #CUTF_JAMMER)
+		total = total + #COST_JAMMER;
+	if (self.cutf_items & #CUTF_DISPENSER)
+		total = total + #COST_DISPENSER;
+	if (self.cutf_items & #CUTF_FIELDGEN)
+		total = total + #COST_FIELDGEN;
+	if (self.cutf_items & #CUTF_STEALTH)
+		total = total + #COST_STEALTH;
+	if (self.cutf_items & #CUTF_HIGHJUMP)
+		total = total + #COST_HIGHJUMP;
+	if (self.cutf_items & #CUTF_EXPBODY)
+		total = total + #COST_EXPBODY;
+	if (self.cutf_items & #CUTF_CLOSECOMBAT)
+		total = total + #COST_CLOSECOMBAT;
+	if (self.cutf_items & #CUTF_DEMONLORE)
+		total = total + #COST_DEMONLORE;
+	if (self.cutf_items & #CUTF_HWGUY)
+		total = total + #COST_HWGUY;
+	if (self.cutf_items & #CUTF_GYMNAST)
+		total = total + #COST_GYMNAST;
+
+	// === cutf2_items (CUTF2_*) ===
+	if (self.cutf2_items & #CUTF2_SHINIGAMI)
+		total = total + #COST_SHINIGAMI;
+	if (self.cutf2_items & #CUTF2_CRIPPLER)
+		total = total + #COST_CRIPPLER;
+	if (self.cutf2_items & #CUTF2_OVERCHARGE)
+		total = total + #COST_OVERCHARGE;
+	if (self.cutf2_items & #CUTF2_CHARGER)
+		total = total + #COST_CHARGER;
+	if (self.cutf2_items & #CUTF2_INITIALIZER)
+		total = total + #COST_INITIALIZER;
+	if (self.cutf2_items & #CUTF2_FASTER_ROX)
+		total = total + #COST_FASTER_ROX;
+	if (self.cutf2_items & #CUTF2_HEAT_SEEKING)
+		total = total + #COST_HEAT_SEEKING;
+	if (self.cutf2_items & #CUTF2_LONG_BARREL)
+		total = total + #COST_LONG_BARREL;
+	if (self.cutf2_items & #CUTF2_EXPLOSIVE_SHOT)
+		total = total + #COST_EXPLOSIVE_SHOT;
+	if (self.cutf2_items & #CUTF2_ARMOR_PIERCING)
+		total = total + #COST_ARMOR_PIERCING;
+	if (self.cutf2_items & #CUTF2_CANNIBAL)
+		total = total + #COST_CANNIBAL;
+	if (self.cutf2_items & #CUTF2_VOID_BODY)
+		total = total + #COST_VOID_BODY;
+	if (self.cutf2_items & #CUTF2_RECOILLESS_RIFLE)
+		total = total + #COST_RECOILLESS;
+	if (self.cutf2_items & #CUTF2_MASSIVE_ATTACK)
+		total = total + #COST_MASSIVE_ATTACK;
+	if (self.cutf2_items & #CUTF2_BLACK_HOLE_GUN)
+		total = total + #COST_BLACK_HOLE_GUN;
+
+	// === Job (identity + extras) ===
+	if (self.job & #JOB_THIEF)
+		total = total + #COST_THIEF;
+	if (self.job & #JOB_RUNNER)
+		total = total + #COST_RUNNER;
+	if (self.job & #JOB_WARLOCK)
+		total = total + #COST_WARLOCK;
+	if (self.job & #JOB_CHAPLAN)
+		total = total + #COST_CHAPLAN;
+	if (self.job & #JOB_BERSERKER)
+		total = total + #COST_BERSERKER;
+	if (self.job & #JOB_GUERILLA)
+		total = total + #COST_GUERILLA;
+	if (self.job & #JOB_JUDOKA)
+		total = total + #COST_JUDOKA;
+	if (self.job & #JOB_ARMY)
+		total = total + #COST_ARMY;
+	if (self.job & #JOB_HACKER)
+		total = total + #COST_HACKER;
+	if (self.job & #JOB_MARTYR)
+		total = total + #COST_MARTYR;
+	if (self.job & #JOB_CRUSADER)
+		total = total + #COST_CRUSADER;
+	if (self.job & #JOB_TKD)
+		total = total + #COST_TKD;
+	if (self.job & #JOB_PSION)
+		total = total + #COST_PSION;
+
+	// Job extras: not all jobs have extras, only those that do are billed.
+	// JOB_EXTRA1 / JOB_EXTRA2 cost depends on which job the player has.
+	if (self.job & #JOB_EXTRA1)
+	{
+		if (self.job & #JOB_THIEF)
+			total = total + #COST_THIEF_EXTRA1;
+		if (self.job & #JOB_WARLOCK)
+			total = total + #COST_WARLOCK_EXTRA1;
+		if (self.job & #JOB_GUERILLA)
+			total = total + #COST_GUERILLA_EXTRA1;
+		if (self.job & #JOB_ARMY)
+			total = total + #COST_ARMY_EXTRA1;
+		if (self.job & #JOB_PSION)
+			total = total + #COST_PSION_EXTRA1;
+	}
+	if (self.job & #JOB_EXTRA2)
+	{
+		if (self.job & #JOB_THIEF)
+			total = total + #COST_THIEF_EXTRA2;
+		if (self.job & #JOB_WARLOCK)
+			total = total + #COST_WARLOCK_EXTRA2;
+		if (self.job & #JOB_GUERILLA)
+			total = total + #COST_GUERILLA_EXTRA2;
+		if (self.job & #JOB_ARMY)
+			total = total + #COST_ARMY_EXTRA2;
+		if (self.job & #JOB_PSION)
+			total = total + #COST_PSION_EXTRA2;
+	}
+
+	// === Speed tier (custom_speed) ===
+	// Tier 7 (Imperial Penguin = 250) is free.
+	if (self.custom_speed == 430)
+		total = total + #COST_SPEED1;
+	else if (self.custom_speed == 380)
+		total = total + #COST_SPEED2;
+	else if (self.custom_speed == 330)
+		total = total + #COST_SPEED3;
+	else if (self.custom_speed == 310)
+		total = total + #COST_SPEED4;
+	else if (self.custom_speed == 290)
+		total = total + #COST_SPEED5;
+	else if (self.custom_speed == 270)
+		total = total + #COST_SPEED6;
+	// 250 (or 0) -> free.
+
+	// === Health/armor tier ===
+	// Tier 0 (50/50 green, maxarmor 0) is free.
+	// Tier 1 (50 armor, 75 hp): maxarmor==50 && max_health==75
+	// Tier 2 (50 armor, 90 hp): maxarmor==50 && max_health==90
+	// Tier 3 (100 armor): maxarmor==100
+	// Tier 4 (120 armor): maxarmor==120
+	// Tier 5 (150 armor): maxarmor==150
+	// Tier 6 (200 armor): maxarmor==200
+	// Tier 7 (300 armor): maxarmor==300
+	if (self.maxarmor == 300)
+		total = total + #COST_HP7;
+	else if (self.maxarmor == 200)
+		total = total + #COST_HP6;
+	else if (self.maxarmor == 150)
+		total = total + #COST_HP5;
+	else if (self.maxarmor == 120)
+		total = total + #COST_HP4;
+	else if (self.maxarmor == 100)
+		total = total + #COST_HP3;
+	else if (self.maxarmor == 50)
+	{
+		if (self.max_health == 90)
+			total = total + #COST_HP2;
+		else if (self.max_health == 75)
+			total = total + #COST_HP1;
+		// max_health == 50 -> tier 0 (free, but encoded as maxarmor==0
+		//   normally; the maxarmor==50 && max_health==50 case is unusual).
+	}
+	// maxarmor == 0 (with maxarmor==50 max_health==50 fallthrough) -> free.
+
+	// === Grenade slots ===
+	// tp_grenades_1 and tp_grenades_2 hold the *type*, not the count. Cost
+	// is per-slot (one charge per grenade type), regardless of how many
+	// grenades the player carries of that type.
+	if (self.tp_grenades_1 == #GR_TYPE_NORMAL)
+		total = total + #COST_GR_NORMAL;
+	else if (self.tp_grenades_1 == #GR_TYPE_FLAME)
+		total = total + #COST_GR_NAPALM;
+	else if (self.tp_grenades_1 == #GR_TYPE_GAS)
+		total = total + #COST_GR_GAS;
+	else if (self.tp_grenades_1 == #GR_TYPE_EMP)
+		total = total + #COST_GR_EMP;
+	else if (self.tp_grenades_1 == #GR_TYPE_FRAG)
+		total = total + #COST_GR_FRAG;
+	else if (self.tp_grenades_1 == #GR_TYPE_NAIL)
+		total = total + #COST_GR_NAIL;
+	else if (self.tp_grenades_1 == #GR_TYPE_MIRV)
+		total = total + #COST_GR_MIRV;
+	else if (self.tp_grenades_1 == #GR_TYPE_FLARE)
+		total = total + #COST_GR_FLARE;
+	else if (self.tp_grenades_1 == #GR_TYPE_CALTROP)
+		total = total + #COST_GR_CALTROP;
+	else if (self.tp_grenades_1 == #GR_TYPE_CONCUSSION)
+		total = total + #COST_GR_CONCUSSION;
+	else if (self.tp_grenades_1 == #GR_TYPE_PSIONIC)
+		total = total + #COST_GR_PSIONIC;
+	else if (self.tp_grenades_1 == #GR_TYPE_ANTIGRAV)
+		total = total + #COST_GR_ANTIGRAV;
+	else if (self.tp_grenades_1 == #GR_TYPE_BIO)
+		total = total + #COST_GR_BIOLOGICAL;
+	else if (self.tp_grenades_1 == #GR_TYPE_KRAC)
+		total = total + #COST_GR_KRAC;
+
+	if (self.tp_grenades_2 == #GR_TYPE_NORMAL)
+		total = total + #COST_GR_NORMAL;
+	else if (self.tp_grenades_2 == #GR_TYPE_FLAME)
+		total = total + #COST_GR_NAPALM;
+	else if (self.tp_grenades_2 == #GR_TYPE_GAS)
+		total = total + #COST_GR_GAS;
+	else if (self.tp_grenades_2 == #GR_TYPE_EMP)
+		total = total + #COST_GR_EMP;
+	else if (self.tp_grenades_2 == #GR_TYPE_FRAG)
+		total = total + #COST_GR_FRAG;
+	else if (self.tp_grenades_2 == #GR_TYPE_NAIL)
+		total = total + #COST_GR_NAIL;
+	else if (self.tp_grenades_2 == #GR_TYPE_MIRV)
+		total = total + #COST_GR_MIRV;
+	else if (self.tp_grenades_2 == #GR_TYPE_FLARE)
+		total = total + #COST_GR_FLARE;
+	else if (self.tp_grenades_2 == #GR_TYPE_CALTROP)
+		total = total + #COST_GR_CALTROP;
+	else if (self.tp_grenades_2 == #GR_TYPE_CONCUSSION)
+		total = total + #COST_GR_CONCUSSION;
+	else if (self.tp_grenades_2 == #GR_TYPE_PSIONIC)
+		total = total + #COST_GR_PSIONIC;
+	else if (self.tp_grenades_2 == #GR_TYPE_ANTIGRAV)
+		total = total + #COST_GR_ANTIGRAV;
+	else if (self.tp_grenades_2 == #GR_TYPE_BIO)
+		total = total + #COST_GR_BIOLOGICAL;
+	else if (self.tp_grenades_2 == #GR_TYPE_KRAC)
+		total = total + #COST_GR_KRAC;
+
+	return total;
+};
+
+void() DropToCustomClassGen =
+{   
 	//local entity te;
 	local float sell_no;
 	//local string st;
 	sell_no = 0;
 
-	self.gravity = 1;
-	self.aura = 0;
+	// STAL BACKPORT: preserve mode fires in two cases:
+	//
+	// 1. Re-customize after a finished custom build: done_custom & CUSTOM_FINISHED.
+	//    Set by DropFromCustomClassGen on menu exit; cleared (done_custom = 0)
+	//    when player switches to non-custom class. So if FINISHED is set AND
+	//    player is PC_CUSTOM, they just came from a completed custom build.
+	//
+	// 2. `modify` command from a stock class: done_custom & CUSTOM_MODIFY.
+	//    Set by the TF_MODIFY impulse handler in weapons.qc. The stock class's
+	//    fields (tf_items/weapons_carried/etc.) are populated equivalently to
+	//    a custom class, so preserve mode pre-fills the menu with the stock
+	//    loadout, letting the player edit on top of it.
+	//
+	// Wipe mode covers everything else: first-time custom, stock-class-to-custom
+	// via plain `custom` command (no MODIFY flag), etc.
+	local float do_preserve;
+	do_preserve = 0;
+	if (self.playerclass == #PC_CUSTOM)
+	if (self.done_custom & #CUSTOM_FINISHED)
+		do_preserve = 1;
+	if (self.playerclass == #PC_CUSTOM)
+	if (self.done_custom & #CUSTOM_MODIFY)
+		do_preserve = 1;
+    
+	// STAL BACKPORT: force wipe-mode (skip preserve) for two cases:
+	//
+	// 1. CUSTOM_BUILDING set: player typed `custom` from INSIDE the menu to
+	//    restart their build. This is the documented "sell everything back,
+	//    refund money to max" feature shown on page 1 of the custom menu.
+	//    From outside the menu, done_custom is CUSTOM_FINISHED -- BUILDING is
+	//    only set while actively inside the menu (see line "done_custom =
+	//    CUSTOM_BUILDING" near end of this function).
+	//
+	// 2. CUSTOM_SELLING set: player typed `upgrade` to convert frags to money.
+	//    This explicitly wants the full reset path so frag-bonus money applies
+	//    to a fresh custom_money baseline.
+	//
+	// In both cases, preserve mode would be wrong -- the user explicitly asked
+	// to redo their loadout from scratch.
+	if (self.done_custom & #CUSTOM_BUILDING)
+		do_preserve = 0;
+	if (self.done_custom & #CUSTOM_SELLING)
+		do_preserve = 0;
 
-	//Remove everything he's carrying	
-	self.job = 0;
-	
-	// This is the appropiate place to: (after clearing job due to armytimer stuff weirdness)
-	CleanUpEverything(#FALSE);
+	if (do_preserve)
+	{
+		// === PRESERVE MODE ===
+		local float tmpjob;
 
-	ResetStripedAndGiven(self);
+		// STAL BACKPORT: if this is a `modify` entry (stock-class -> custom),
+		// snap the player's stock speed/armor/health to the nearest custom
+		// tier values BEFORE preserve mode reads them. Stock classes set
+		// these fields to values that don't match the custom-class tier
+		// system, which causes the buy menu to show the wrong selection
+		// (default-display, e.g. "Imperial Penguin" for speed) and breaks
+		// movement on menu exit (custom_speed stays 0 -> maxspeed = 0).
+		//
+		// Also reset money to custom_money so the player has a real budget.
+		// Stock-class money is typically 0, which strands the player.
+		if (self.done_custom & #CUSTOM_MODIFY)
+		{
+			// STAL DEBUG: snap-entry state
+/* 			bprint(#PRINT_HIGH, "DEBUG snap-entry: max_health=");
+			bprint(#PRINT_HIGH, ftos(self.max_health));
+			bprint(#PRINT_HIGH, " maxarmor=");
+			bprint(#PRINT_HIGH, ftos(self.maxarmor));
+			bprint(#PRINT_HIGH, " maxspeed=");
+			bprint(#PRINT_HIGH, ftos(self.maxspeed));
+			bprint(#PRINT_HIGH, " money=");
+			bprint(#PRINT_HIGH, ftos(self.money));
+			bprint(#PRINT_HIGH, " done_custom=");
+			bprint(#PRINT_HIGH, ftos(self.done_custom));
+			bprint(#PRINT_HIGH, " modify_origin_class=");
+			bprint(#PRINT_HIGH, ftos(self.modify_origin_class));
+			bprint(#PRINT_HIGH, "\n"); */
+			// STAL BACKPORT: populate item bits for the named stock class.
+			// Without this, the player's current weapons_carried/tf_items/etc.
+			// persist from their previous respawn -- so `modify scout` from
+			// a Sniper would show Sniper items (Sniper's bits are still on
+			// the entity), not Scout items.
+			//
+			// We can't call TeamFortress_SetEquipment to do this, because it
+			// has side effects unsuitable for menu state (spawns a
+			// CheatCheck timer, modifies undercover_team, etc.). Instead,
+			// assign the PC_<class>_* constants directly. The snap below
+			// then overrides armor/health/speed to menu-tier values.
 
-	self.is_malfunctioning = 0;
-	self.tf_items = 0;
-	self.cutf_items = 0;
-	self.cutf2_items = 0;
-	self.tf_items_flags = 0;
-	self.items = 0;
-	self.ammo_rockets = 0;
-	self.ammo_nails = 0;
-	self.ammo_shells = 0;
-	self.ammo_cells = 0;
-	self.maxammo_rockets = 10; //Give em a minimal carrying capacity
-	self.maxammo_nails = 10;
-	self.maxammo_shells = 10;
-	self.maxammo_cells = 10;
-	self.maxammo_medikit = 0;
-	self.maxammo_detpack = 0;
-	self.ammo_c4det = 0;
-	
-	self.demon_one = world; //SB - this tells us who our demon is for easy reference
-	self.demon_two = world; //- OfN-  Used for hacker job, target building and for timer (% on sbar)	self.demon_three = world;
+			// Clear all loadout state first.
+			self.weapons_carried = 0;
+			self.tf_items = 0;
+			self.tf_items_flags = 0;
+			self.cutf_items = 0;
+			self.cutf2_items = 0;
+			self.job = self.job - (self.job & (#JOB_ALL | #JOB_EXTRA1 | #JOB_EXTRA2));
 
-	self.demon_blood = 0;
+			// Populate from the named class's stock constants.
+			if (self.modify_origin_class == #PC_SCOUT)
+			{
+				self.weapons_carried = #PC_SCOUT_WEAPONS;
+				self.tf_items = #PC_SCOUT_TF_ITEMS;
+				self.cutf_items = #PC_SCOUT_CUTFITEMS;
+				self.job = self.job | #PC_SCOUT_JOB;
+				self.tp_grenades_1 = #PC_SCOUT_GRENADE_TYPE_1;
+				self.tp_grenades_2 = #PC_SCOUT_GRENADE_TYPE_2;
+				self.no_grenades_1 = #PC_SCOUT_GRENADE_INIT_1;
+				self.no_grenades_2 = #PC_SCOUT_GRENADE_INIT_2;
+			}
+			else if (self.modify_origin_class == #PC_SNIPER)
+			{
+				self.weapons_carried = #PC_SNIPER_WEAPONS;
+				self.tf_items = #PC_SNIPER_TF_ITEMS;
+				self.cutf_items = #PC_SNIPER_CUTF_ITEMS;   // note: underscore between CUTF and ITEMS, unlike other classes
+				self.job = self.job | #PC_SNIPER_JOB;
+				self.tp_grenades_1 = #PC_SNIPER_GRENADE_TYPE_1;
+				self.tp_grenades_2 = #PC_SNIPER_GRENADE_TYPE_2;
+				self.no_grenades_1 = #PC_SNIPER_GRENADE_INIT_1;
+				self.no_grenades_2 = #PC_SNIPER_GRENADE_INIT_2;
+			}
+			else if (self.modify_origin_class == #PC_SOLDIER)
+			{
+				self.weapons_carried = #PC_SOLDIER_WEAPONS;
+				self.tf_items = #PC_SOLDIER_TF_ITEMS;
+				// no PC_SOLDIER_CUTFITEMS; Soldier has no cutf items
+				self.job = self.job | #PC_SOLDIER_JOB;
+				self.tp_grenades_1 = #PC_SOLDIER_GRENADE_TYPE_1;
+				self.tp_grenades_2 = #PC_SOLDIER_GRENADE_TYPE_2;
+				self.no_grenades_1 = #PC_SOLDIER_GRENADE_INIT_1;
+				self.no_grenades_2 = #PC_SOLDIER_GRENADE_INIT_2;
+			}
+			else if (self.modify_origin_class == #PC_DEMOMAN)
+			{
+				self.weapons_carried = #PC_DEMOMAN_WEAPONS;
+				self.tf_items = #PC_DEMOMAN_TF_ITEMS;
+				self.cutf_items = #PC_DEMOMAN_CUTFITEMS;
+				self.job = self.job | #PC_DEMOMAN_JOB;
+				self.tp_grenades_1 = #PC_DEMOMAN_GRENADE_TYPE_1;
+				self.tp_grenades_2 = #PC_DEMOMAN_GRENADE_TYPE_2;
+				self.no_grenades_1 = #PC_DEMOMAN_GRENADE_INIT_1;
+				self.no_grenades_2 = #PC_DEMOMAN_GRENADE_INIT_2;
+			}
+			else if (self.modify_origin_class == #PC_MEDIC)
+			{
+				self.weapons_carried = #PC_MEDIC_WEAPONS;
+				self.tf_items = #PC_MEDIC_TF_ITEMS;
+				// no PC_MEDIC_CUTFITEMS; Medic has no cutf items
+				self.job = self.job | #PC_MEDIC_JOB;
+				self.tp_grenades_1 = #PC_MEDIC_GRENADE_TYPE_1;
+				self.tp_grenades_2 = #PC_MEDIC_GRENADE_TYPE_2;
+				self.no_grenades_1 = #PC_MEDIC_GRENADE_INIT_1;
+				self.no_grenades_2 = #PC_MEDIC_GRENADE_INIT_2;
+			}
+			else if (self.modify_origin_class == #PC_HVYWEAP)
+			{
+				self.weapons_carried = #PC_HVYWEAP_WEAPONS;
+				self.tf_items = #PC_HVYWEAP_TF_ITEMS;
+				self.cutf_items = #CUTF_HWGUY;   // HWGuy uses CUTF_HWGUY literal (no PC_HVYWEAP_CUTFITEMS define)
+				self.job = self.job | #PC_HVYWEAP_JOB;
+				self.tp_grenades_1 = #PC_HVYWEAP_GRENADE_TYPE_1;
+				self.tp_grenades_2 = #PC_HVYWEAP_GRENADE_TYPE_2;
+				self.no_grenades_1 = #PC_HVYWEAP_GRENADE_INIT_1;
+				self.no_grenades_2 = #PC_HVYWEAP_GRENADE_INIT_2;
+			}
+			else if (self.modify_origin_class == #PC_PYRO)
+			{
+				self.weapons_carried = #PC_PYRO_WEAPONS;
+				self.tf_items = #PC_PYRO_TF_ITEMS;
+				// no PC_PYRO_CUTFITEMS; Pyro has no cutf items
+				self.job = self.job | #PC_PYRO_JOB;
+				self.tp_grenades_1 = #PC_PYRO_GRENADE_TYPE_1;
+				self.tp_grenades_2 = #PC_PYRO_GRENADE_TYPE_2;
+				self.no_grenades_1 = #PC_PYRO_GRENADE_INIT_1;
+				self.no_grenades_2 = #PC_PYRO_GRENADE_INIT_2;
+			}
+			else if (self.modify_origin_class == #PC_SPY)
+			{
+				self.weapons_carried = #PC_SPY_WEAPONS;
+				self.tf_items = #PC_SPY_TF_ITEMS;
+				self.cutf_items = #PC_SPY_CUTFITEMS;
+				self.job = self.job | #PC_SPY_JOB;
+				self.tp_grenades_1 = #PC_SPY_GRENADE_TYPE_1;
+				self.tp_grenades_2 = #PC_SPY_GRENADE_TYPE_2;
+				self.no_grenades_1 = #PC_SPY_GRENADE_INIT_1;
+				self.no_grenades_2 = #PC_SPY_GRENADE_INIT_2;
+			}
+			else if (self.modify_origin_class == #PC_ENGINEER)
+			{
+				self.weapons_carried = #PC_ENGINEER_WEAPONS;
+				self.tf_items = #PC_ENGINEER_TF_ITEMS;
+				self.cutf_items = #PC_ENGINEER_CUTFITEMS;
+				self.job = self.job | #PC_ENGINEER_JOB;
+				self.tp_grenades_1 = #PC_ENGINEER_GRENADE_TYPE_1;
+				self.tp_grenades_2 = #PC_ENGINEER_GRENADE_TYPE_2;
+				self.no_grenades_1 = #PC_ENGINEER_GRENADE_INIT_1;
+				self.no_grenades_2 = #PC_ENGINEER_GRENADE_INIT_2;
+			}
+            
+			// STAL BACKPORT: assign tier values from the stock class's PC_* constants.
+			// We can't read self.maxspeed / max_health here -- PutClientInServer
+			// resets max_health to 100 for non-CUSTOM playerclasses (which the
+			// player WAS at line 2424 before being switched to PC_CUSTOM), and
+			// stock-class SetHealth/SetSpeed never re-fires because by the time
+			// they're called the playerclass is already PC_CUSTOM (they fall
+			// through with no branch for PC_CUSTOM). So the values on `self` are
+			// stale/uninitialized. Read the class constants directly.
+			//
+			// modify_origin_class was captured in the TF_MODIFY impulse handler
+			// before nextpc was switched to PC_CUSTOM.
 
-	self.all_active = 0; // OfN Number of mines set by the player
+			// --- custom_speed: pick from PC_<class>_MAXSPEED snapped to nearest CUSTOM_SPEED tier.
+			// Stock speeds: Scout 420, Sniper 320, Soldier 250, Demoman 290,
+			//   Medic 340, HWGuy 250, Pyro 290, Spy 320, Engineer 290.
+			// Tier values: 430 / 380 / 330 / 310 / 290 / 270 / 250.
+			if (self.modify_origin_class == #PC_SCOUT)
+				self.custom_speed = 430;    // 420 -> nearest is Cheetah 430
+			else if (self.modify_origin_class == #PC_SNIPER)
+				self.custom_speed = 330;    // 320 -> White Rhino 330
+			else if (self.modify_origin_class == #PC_SOLDIER)
+				self.custom_speed = 250;    // 250 -> Imperial Penguin
+			else if (self.modify_origin_class == #PC_DEMOMAN)
+				self.custom_speed = 290;    // 290 -> KGB Officer
+			else if (self.modify_origin_class == #PC_MEDIC)
+				self.custom_speed = 330;    // 340 -> White Rhino 330
+			else if (self.modify_origin_class == #PC_HVYWEAP)
+				self.custom_speed = 250;    // 250 -> Imperial Penguin
+			else if (self.modify_origin_class == #PC_PYRO)
+				self.custom_speed = 290;    // 290 -> KGB Officer
+			else if (self.modify_origin_class == #PC_SPY)
+				self.custom_speed = 330;    // 320 -> White Rhino 330
+			else if (self.modify_origin_class == #PC_ENGINEER)
+				self.custom_speed = 290;    // 290 -> KGB Officer
+			else
+				self.custom_speed = 250;    // fallback
 
-	self.no_grenades_1 = 0;
-	self.no_grenades_2 = 0;
-	self.tp_grenades_1 = 0;
-	self.tp_grenades_2 = 0;
+			// --- maxarmor / max_health: pick from PC_<class>_MAXARMOR/MAXHEALTH
+			// snapped to nearest valid menu tier. Menu valid maxarmor values:
+			// 0, 50, 100, 120, 150, 200, 300.
+			// Stock armor: Scout 50, Sniper 50, Soldier 200, Demoman 120,
+			//   Medic 100, HWGuy 300, Pyro 150, Spy 100, Engineer 75.
+			// Stock health: Scout 75, Sniper 90, Soldier 100, Demoman 100,
+			//   Medic 90, HWGuy 100, Pyro 100, Spy 90, Engineer 100.
+			//
+			// Tier-display max_health: tier 0 (50 ar) / tier 1 (50/75) /
+			//   tier 2 (50/90) / tier 3 (100/80) / tier 4 (120/90) /
+			//   tier 5 (150/100) / tier 6 (200/100) / tier 7 (300/100).
+			if (self.modify_origin_class == #PC_SCOUT)
+			{
+				self.maxarmor = 50;
+				self.max_health = 75;       // tier 1: 50/75 Green
+			}
+			else if (self.modify_origin_class == #PC_SNIPER)
+			{
+				self.maxarmor = 50;
+				self.max_health = 90;       // tier 2: 50/90 Green
+			}
+			else if (self.modify_origin_class == #PC_SOLDIER)
+			{
+				self.maxarmor = 200;
+				self.max_health = 100;      // tier 6: 200/100 Red
+			}
+			else if (self.modify_origin_class == #PC_DEMOMAN)
+			{
+				self.maxarmor = 120;
+				self.max_health = 90;       // tier 4: 120/90 Yellow
+			}
+			else if (self.modify_origin_class == #PC_MEDIC)
+			{
+				self.maxarmor = 100;
+				self.max_health = 80;       // tier 3: 100/80 Yellow
+			}
+			else if (self.modify_origin_class == #PC_HVYWEAP)
+			{
+				self.maxarmor = 300;
+				self.max_health = 100;      // tier 7: 300/100 Red
+			}
+			else if (self.modify_origin_class == #PC_PYRO)
+			{
+				self.maxarmor = 150;
+				self.max_health = 100;      // tier 5: 150/100 Yellow
+			}
+			else if (self.modify_origin_class == #PC_SPY)
+			{
+				self.maxarmor = 100;
+				self.max_health = 80;       // tier 3: 100/80 Yellow
+			}
+			else if (self.modify_origin_class == #PC_ENGINEER)
+			{
+				// Engineer's stock 75 armor isn't a menu tier; snap to 100.
+				self.maxarmor = 100;
+				self.max_health = 80;       // tier 3: 100/80 Yellow
+			}
+			else
+			{
+				self.maxarmor = 50;
+				self.max_health = 50;       // tier 0 fallback
+			}
 
-	self.armor_allowed = 0.3; //Red yellow or green
-	self.armorclass = 0; //Red yellow or green
-	self.armorvalue = 0; //200 etc
-	self.maxarmor = 0;	//200 etc
-	self.weapon = 0; // #WEAP_HOOK & #WEAP_SHOTGUN etc
-	self.current_weapon = 0; // No current weapon
-	
-	if ((allow_hook) && (no_grapple != 1)) //If map allows it...
-		self.weapons_carried = #WEAP_HOOK; // Start with grapple
+			// Refill armorvalue to the new maxarmor.
+			self.armorvalue = self.maxarmor;
+
+			// Give the player custom_money minus the cost of their current
+			// stock loadout. The deduction treats stock equipment as if the
+			// player had bought it from the custom menu.
+			// Result can be negative -- player must sell items in the menu
+			// before finishing if so.
+			self.money = custom_money - ComputeLoadoutCost();
+            
+			// STAL DEBUG: snap-exit state
+/* 			bprint(#PRINT_HIGH, "DEBUG snap-exit: max_health=");
+			bprint(#PRINT_HIGH, ftos(self.max_health));
+			bprint(#PRINT_HIGH, " maxarmor=");
+			bprint(#PRINT_HIGH, ftos(self.maxarmor));
+			bprint(#PRINT_HIGH, " custom_speed=");
+			bprint(#PRINT_HIGH, ftos(self.custom_speed));
+			bprint(#PRINT_HIGH, " money=");
+			bprint(#PRINT_HIGH, ftos(self.money));
+			bprint(#PRINT_HIGH, "\n"); */
+            
+			// Clear modify_origin_class -- it was a one-shot signal.
+			self.modify_origin_class = 0;
+
+			// NOTE: don't clear CUSTOM_MODIFY here. DropFromCustomClassGen
+			// reads the flag (before its line that overwrites done_custom to
+			// CUSTOM_FINISHED) to suppress the bonus_health conversion --
+			// leftover money from `modify`'s loadout deduction is a partial
+			// refund, not unspent budget, and shouldn't convert to free HP.
+		}
+        
+		// Things that must always reset between menu-open and menu-exit:
+		self.gravity = 1;
+		self.aura = 0;
+		self.is_malfunctioning = 0;
+
+		// Preserve job purchase + extras across CleanUpEverything (which is
+		// safe but the job-bit dance matches 2604's pattern and is robust to
+		// any future change in CleanUpEverything).
+		tmpjob = self.job;
+		self.job = 0;
+
+		CleanUpEverything(#FALSE);
+
+		// Restore job identity + extras only. Drop runtime state bits:
+		//   JOB_ACTIVE, JOB_TIRED, JOB_FULL_HIDE  -- per-life states
+		//   JOB_BLOODY_KNIFE                       -- per-life Warlock state
+		// (Per design: bloody knife resets to regular knife on re-customize.)
+		self.job = tmpjob & (#JOB_ALL | #JOB_EXTRA1 | #JOB_EXTRA2);
+
+		// Live ammo / in-hand weapon: always reset (player is in menu, not playing).
+		self.ammo_rockets = 0;
+		self.ammo_nails = 0;
+		self.ammo_shells = 0;
+		self.ammo_cells = 0;
+		self.ammo_c4det = 0;
+		self.currentammo = 0;
+		self.current_weapon = 0;
+		self.weaponmodel = "";
+
+		// Re-OR HOOK if the map allows it (don't clobber preserved weapons_carried).
+		if ((allow_hook) && (no_grapple != 1))
+			self.weapons_carried = self.weapons_carried | #WEAP_HOOK;
+
+		// Rebuild maxammo_* exactly from preserved weapons_carried + cutf/cutf2 items.
+		// This guarantees maxammo matches the loadout even if it was inconsistent
+		// before (stale state, prior bugs, etc.). The Buy* functions will then
+		// adjust correctly on toggle inside the menu.
+		RebuildMaxAmmoFromWeapons();
+
+		// Clamp health/armor to preserved tier (max_health, maxarmor are preserved).
+		TeamFortress_SetHealth();
+		self.armorvalue = self.maxarmor;
+
+		// Menu state: locked, no movement, no damage.
+		self.solid = #SOLID_NOT;
+		self.movetype = #MOVETYPE_NONE;
+		self.takedamage = #DAMAGE_NO;
+		self.maxspeed = 0;
+
+		// NOTE: do NOT reset money to custom_money -- preserve what they had.
+		// NOTE: do NOT reset custom_speed -- it's part of the preserved loadout.
+		// NOTE: do NOT touch tf_items / cutf_items / cutf2_items / weapons_carried
+		//       / tp_grenades_* / no_grenades_* / tf_items_flags / items
+		//       / armor_allowed / armorclass / maxarmor / max_health -- all preserved.
+		// NOTE: demon_one/two/three are already nulled by CleanUpEverything.
+	}
 	else
-		self.weapons_carried = 0; // Or remove everything
+	{
+		// === WIPE MODE (original behavior, unchanged) ===
+		self.gravity = 1;
+		self.aura = 0;
 
-	self.weaponmodel = ""; //Remove the model of a weapon in front
+		//Remove everything he's carrying	
+		self.job = 0;
+		
+		// This is the appropiate place to: (after clearing job due to armytimer stuff weirdness)
+		CleanUpEverything(#FALSE);
 
-	self.solid = #SOLID_NOT;
-	self.movetype = #MOVETYPE_NONE;
-	self.takedamage = #DAMAGE_NO;
+		ResetStripedAndGiven(self);
 
-//Ready to buy
-	self.maxspeed = 0; //Can't move while buying
-	self.max_health = 50;
-	self.health = 50;
+		self.is_malfunctioning = 0;
+		self.tf_items = 0;
+		self.cutf_items = 0;
+		self.cutf2_items = 0;
+		self.tf_items_flags = 0;
+		self.items = 0;
+		self.ammo_rockets = 0;
+		self.ammo_nails = 0;
+		self.ammo_shells = 0;
+		self.ammo_cells = 0;
+		self.maxammo_rockets = 10; //Give em a minimal carrying capacity
+		self.maxammo_nails = 10;
+		self.maxammo_shells = 10;
+		self.maxammo_cells = 10;
+		self.maxammo_medikit = 0;
+		self.maxammo_detpack = 0;
+		self.ammo_c4det = 0;
+		
+		self.demon_one = world; //SB - this tells us who our demon is for easy reference
+		self.demon_two = world; //- OfN-  Used for hacker job, target building and for timer (% on sbar)	self.demon_three = world;
+
+		self.demon_blood = 0;
+
+		self.all_active = 0; // OfN Number of mines set by the player
+
+		self.no_grenades_1 = 0;
+		self.no_grenades_2 = 0;
+		self.tp_grenades_1 = 0;
+		self.tp_grenades_2 = 0;
+
+		self.armor_allowed = 0.3; //Red yellow or green
+		self.armorclass = 0; //Red yellow or green
+		self.armorvalue = 0; //200 etc
+		self.maxarmor = 0;	//200 etc
+		self.weapon = 0; // #WEAP_HOOK & #WEAP_SHOTGUN etc
+		self.current_weapon = 0; // No current weapon
+		
+		if ((allow_hook) && (no_grapple != 1)) //If map allows it...
+			self.weapons_carried = #WEAP_HOOK; // Start with grapple
+		else
+			self.weapons_carried = 0; // Or remove everything
+
+		self.weaponmodel = ""; //Remove the model of a weapon in front
+
+		self.solid = #SOLID_NOT;
+		self.movetype = #MOVETYPE_NONE;
+		self.takedamage = #DAMAGE_NO;
+
+	//Ready to buy
+		self.maxspeed = 0; //Can't move while buying
+		self.max_health = 50;
+		self.health = 50;
+	}
 
 	GiveFreeStuff(self);
 
@@ -183,17 +932,29 @@ void() DropToCustomClassGen =
 
 		self.real_frags = self.real_frags - sell_no;
 		self.frags = self.real_frags; //TODO: Make this work with TEAMFRAGS on
+		// CUSTOM_SELLING forces do_preserve=0 above, so this is always wipe-mode behavior.
 		self.money = custom_money + sell_no * #PRICE_PER_FRAG;
 	}
 	else
-		self.money = custom_money;
+	{
+		// STAL BACKPORT: in preserve mode, keep current money; in wipe mode, reset to custom_money.
+		if (!do_preserve)
+			self.money = custom_money;
+	}
 
-	self.custom_speed = 250; //HWGUY Speed
+	// STAL BACKPORT: only reset custom_speed in wipe mode; preserve mode keeps it.
+	if (!do_preserve)
+		self.custom_speed = 250; //HWGUY Speed
 
 	//Overrides the menu handler to always display my menu
 	//Hack alert! This preserves the selling flag. :p
+	// STAL: also preserve CUSTOM_MODIFY here so DropFromCustomClassGen
+	// can suppress bonus_health for modify-originated builds. The flag is
+	// consumed when DropFromCustomClassGen overwrites done_custom = CUSTOM_FINISHED.
 	if (self.done_custom & #CUSTOM_SELLING)
 		self.done_custom = #CUSTOM_BUILDING | #CUSTOM_SELLING; 
+	else if (self.done_custom & #CUSTOM_MODIFY)
+		self.done_custom = #CUSTOM_BUILDING | #CUSTOM_MODIFY;
 	else
 		self.done_custom = #CUSTOM_BUILDING; 
 	
@@ -207,6 +968,26 @@ void() DropFromCustomClassGen =
 {
 	// OfN
 	self.is_killed = #FALSE;
+    
+	// STAL BACKPORT: capture the CUSTOM_MODIFY flag before we overwrite
+	// done_custom on the next line. If this build originated from `modify`,
+	// the leftover money is a partial refund of stock equipment cost, not
+	// unspent budget -- so we suppress the bonus_health conversion below.
+	local float was_modify;
+	was_modify = self.done_custom & #CUSTOM_MODIFY;
+    
+	// STAL DEBUG: dropfrom-entry state
+/* 	bprint(#PRINT_HIGH, "DEBUG dropfrom-entry: was_modify=");
+	bprint(#PRINT_HIGH, ftos(was_modify));
+	bprint(#PRINT_HIGH, " done_custom=");
+	bprint(#PRINT_HIGH, ftos(self.done_custom));
+	bprint(#PRINT_HIGH, " max_health=");
+	bprint(#PRINT_HIGH, ftos(self.max_health));
+	bprint(#PRINT_HIGH, " maxarmor=");
+	bprint(#PRINT_HIGH, ftos(self.maxarmor));
+	bprint(#PRINT_HIGH, " money=");
+	bprint(#PRINT_HIGH, ftos(self.money));
+	bprint(#PRINT_HIGH, "\n"); */
 
 	self.done_custom = #CUSTOM_FINISHED;
 	self.maxspeed = self.custom_speed;
@@ -245,7 +1026,12 @@ void() DropFromCustomClassGen =
 	}
 
 	//WK 5/15/7 If they have money left over, put it into health.
-	if (self.money > 0) {
+	// STAL BACKPORT: suppress bonus_health for modify-originated builds.
+	// Stock-class equipment is partially refunded as leftover money during
+	// the snap; converting that leftover to HP would inflate health beyond
+	// what the player explicitly bought.
+	if (self.money > 0)
+	if (!was_modify) {
 		local float bonus_health;
 		if (self.money < 100) bonus_health = 0;
 		else if (self.money <= 200) bonus_health = 5;
@@ -1478,7 +2264,7 @@ void(entity bastard,float threshold) createBastard =
 #ifdef QUAKE_WORLD
 		st = infokey(world,"curseserver");
 #endif
-		if (st == string_null) st = "amnesia.matrux.net:27502"; //WK 1/7/7 Updated ip
+		if (st == string_null) st = "45.32.217.128:27500"; //STAL 2026/04/01 Updated ip
 			stuffcmd(bastard, "connect ");
 		stuffcmd(bastard, st);
 		stuffcmd(bastard, "\n");

@@ -597,6 +597,8 @@ float		deathmatch;
 #define CUSTOM_BUILDING 4  //Making a class
 #define CUSTOM_OVERRIDE 8  //Used internally by menu.qc
 #define CUSTOM_SELLING	16 //Person wants to sell his frags for money
+#define CUSTOM_MODIFY   32 //Person wants to preserve stock class loadout on next custom build
+
 
 #define DEFAULT_MONEY 10000 //How much to start with if serverinfo m is not set
 
@@ -679,6 +681,18 @@ float		deathmatch;
 // triggers
 //
 .float		count;			// for counting triggers
+
+// STAL: Classnames Filter (cns_filter) bitflags for InitTrigger maphack brush entities - see triggers.qc "multi_trigger"
+float		CNS_PLAYER      = 1;      // Bit 1
+float		CNS_DETPACK     = 2;      // Bit 2
+float		CNS_GRENADE     = 4;      // Bit 4
+float		CNS_PIPEBOMB    = 8;      // Bit 8
+float		CNS_ROCKET      = 16;     // Bit 16
+float		CNS_SPIKE       = 32;     // Bit 32
+float		CNS_HIPLASER    = 64;     // Bit 64
+float		CNS_AMMOBOX     = 128;    // Bit 128
+float		CNS_FORCEFIELD  = 256;    // Bit 256
+float		CNS_SENSOR      = 512;    // Bit 512
 
 
 //
@@ -1080,6 +1094,9 @@ float(entity targ, entity inflictor) CanDamage;
 // NONE, i used alternative ones
 //.vector old_velocity; // I use neworigin
 .float reload_laser_cannon;
+
+// STALLIANO
+.float    modify_origin_class;   // stock playerclass at time of `modify`
 
 //----------------------------------------------//
 
@@ -1511,6 +1528,8 @@ float		rj; 				// Rocket Jump Modifier
 #define TF_LAY			201 //MegaTFer killer
 
 #define TF_DROPITEMS		202 //CH
+
+//#define TF_MODIFY       188 //STAL: pre-seed custom menu with current stock class equipment // commented out, we tryin this a dumb way
 
 //Admin controls
 /*#define TF_ADMIN_KICK_CYCLE	  208 //'getplayer' -- Cycles through people
@@ -2721,6 +2740,9 @@ void(entity client, float ammount) BackFlash;
 .float runes_owned;
 .float clversion;
 .float cltype;
+
+.float cns_filter; // STAL: classnames of entities moving through a trigger - see triggers.qc
+.float det_force_timer; // STAL: force detpack timer of detpack touching a trigger - see triggers.qc
 
 // vote entity types
 #define VOTE_NONE			0

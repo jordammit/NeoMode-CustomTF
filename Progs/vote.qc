@@ -1480,7 +1480,8 @@ float(float final) CheckVoting =
 			bprint(#PRINT_HIGH,"Votingç Success° Setting ",st," as next map\n");
 
 			localcmd("localinfo agr \"\"\n"); // PZ - make sure AGR is going to be off
-			localcmd("localinfo neo \"\"\n"); // make sure Neo mode is going to be off
+			//localcmd("localinfo neo \"\"\n"); // make sure Neo mode is going to be off
+            localcmd("localinfo neo 1\n"); // STAL: sorry but uhh... we're going Neo-centric here.
 
 			localcmd("localinfo nmap \"");
 			localcmd(current_voteent.netname);
@@ -1513,7 +1514,8 @@ float(float final) CheckVoting =
 
 			localcmd("localinfo agr \"\"\n"); // PZ - make sure AGR is going to be off
 			// begin Neo modification
-			localcmd("localinfo neo \"\"\n"); // make sure Neo mode is going to be off
+			//localcmd("localinfo neo \"\"\n"); // make sure Neo mode is going to be off
+            localcmd("localinfo neo 1\n"); // STAL: sorry but uhh... we're going Neo-centric here.
 
 			BroadcastSound("misc/runekey");
 
@@ -1607,8 +1609,8 @@ float(float final) CheckVoting =
 			
 			bprint(#PRINT_HIGH,"\nVotingç Success° Setting ",st," as next map, in ¡ÙÙ·„ÎÂÚÛ «Ô “Â‰ mode\n");
 
-			localcmd("localinfo agr 1\n");
-			localcmd("localinfo neo \"\"\n"); // make sure Neo mode is going to be off
+			localcmd("localinfo agr \"\"\n"); // STAL: not on this server
+			localcmd("localinfo neo 1\n"); // STAL: all neo all the time
 
 			localcmd("localinfo nmap \"");
 			localcmd(current_voteent.netname);
@@ -1639,8 +1641,8 @@ float(float final) CheckVoting =
 
 			bprint(#PRINT_HIGH,"\nVotingç Success° Switching map to ",st,", in ¡ÙÙ·„ÎÂÚÛ «Ô “Â‰ mode\n");
 
-			localcmd("localinfo agr 1\n");
-			localcmd("localinfo neo \"\"\n"); // make sure Neo mode is going to be off
+			localcmd("localinfo agr \"\"\n"); //STAL: sike
+            localcmd("localinfo neo 1\n"); // STAL: neo now
 
 			BroadcastSound("misc/runekey");
 

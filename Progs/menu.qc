@@ -111,6 +111,8 @@ void() lvl3_sentry_stand;
 float (float tno) TeamFortress_TeamGetNoPlayers;
 float(float myteam) HasFlag; 
 
+entity(entity towner, string tclassname) FindMy;
+
 /* WK void(float menu_no) DisplayMenu; */
 // Assorted menus
 void() Menu_Team;
@@ -791,6 +793,12 @@ void(float inp) Menu_Team_Input =
 
 void() Menu_Class =
 {
+    //bprint(#PRINT_HIGH, "DEBUG: Menu_Class entered, self.classname=");
+    //bprint(#PRINT_HIGH, self.classname);
+    //bprint(#PRINT_HIGH, " netname=");
+    //bprint(#PRINT_HIGH, self.netname);
+    //bprint(#PRINT_HIGH, "\n");
+    
 	local entity AD;
 
 	AD = find(world, classname, "info_tfdetect");
@@ -830,27 +838,54 @@ void() Menu_Class =
 			}
 		}
 	}
-
+    
+    // STAL BACKPORT: build resume hint suffix if career exists
+    local string resume_suffix;
+    local entity career_te;
+    resume_suffix = "";
+    career_te = FindMy(self, "career");
+    if (career_te != world)
+    if (custom_mode != 2)
+    if (self.team_no)
+    if (!TeamFortress_TeamIsCivilian(self.team_no))
+    {
+        resume_suffix = "\n\nJUMP to resume as previous custom class";
+        //bprint(#PRINT_HIGH, "DEBUG: resume suffix set\n");
+    }
+    // END BACKPORT
+    
 	local float x;
 	if (custom_mode!=2)
 	{
 		if (TeamFortress_TeamIsCivilian(self.team_no))
 			CenterPrint(self, "Your team can only be Civilians.\n");
 		else if (spy_off == #TRUE)
-			CenterPrint(self, "Ÿ Ãèïïóå ùïõò ãìáóó Ÿ\n\n.. Scout   \n.. Sniper  \n.. Soldier \n.. Demoman \n.. Medic   \n.. Hwguy   \n.. Pyro    \n.. Engineer\n\n.. Ãõóôïí! \n");
+			CenterPrint2(self, "Ÿ Ãèïïóå ùïõò ãìáóó Ÿ\n\n.. Scout   \n.. Sniper  \n.. Soldier \n.. Demoman \n.. Medic   \n.. Hwguy   \n.. Pyro    \n.. Engineer\n\n.. Ãõóôïí! \n", resume_suffix);
 		else
 		{
 			// begin Neo mod
 			if (neo)
 			{
+                local string banner_with_resume;
+                
+                //bprint(#PRINT_HIGH, "DEBUG: rendering Neo menu for ");
+                //bprint(#PRINT_HIGH, self.netname);
+                //bprint(#PRINT_HIGH, "\n");
+                
 				x = floor(time);
 				if (x - (2 * floor(x / 2)) == 0) // x mod 2 == 0
-					CenterPrint(self, "Ÿ Ãèïïóå ùïõò ãìáóó Ÿ\n\n.. Scout   \n.. Sniper  \n.. Soldier \n.. Demoman \n.. Medic   \n.. Hwguy   \n.. Pyro    \n.. Spy     \n.. Engineer\n\n.. Ãõóôïí! \n\n\n\n Neo Mode - ÂÅÔÁ \n");
+                {
+                    banner_with_resume = strcat(resume_suffix, "\n\n\n\n Neo Mode - ÂÅÔÁ \n");
+					CenterPrint2(self, "Ÿ Ãèïïóå ùïõò ãìáóó Ÿ\n\n.. Scout   \n.. Sniper  \n.. Soldier \n.. Demoman \n.. Medic   \n.. Hwguy   \n.. Pyro    \n.. Spy     \n.. Engineer\n\n.. Ãõóôïí! \n", banner_with_resume);
+                }
 				else
-					CenterPrint(self, "Ÿ Ãèïïóå ùïõò ãìáóó Ÿ\n\n.. Scout   \n.. Sniper  \n.. Soldier \n.. Demoman \n.. Medic   \n.. Hwguy   \n.. Pyro    \n.. Spy     \n.. Engineer\n\n.. Ãõóôïí! \n\n\n\n Neo Mode - BETA \n");
+                {
+                    banner_with_resume = strcat(resume_suffix, "\n\n\n\n Neo Mode - BETA \n");
+					CenterPrint2(self, "Ÿ Ãèïïóå ùïõò ãìáóó Ÿ\n\n.. Scout   \n.. Sniper  \n.. Soldier \n.. Demoman \n.. Medic   \n.. Hwguy   \n.. Pyro    \n.. Spy     \n.. Engineer\n\n.. Ãõóôïí! \n", banner_with_resume);
+                }
 			}
 			else
-				CenterPrint(self, "Ÿ Ãèïïóå ùïõò ãìáóó Ÿ\n\n.. Scout   \n.. Sniper  \n.. Soldier \n.. Demoman \n.. Medic   \n.. Hwguy   \n.. Pyro    \n.. Spy     \n.. Engineer\n\n.. Ãõóôïí! \n");
+				CenterPrint2(self, "Ÿ Ãèïïóå ùïõò ãìáóó Ÿ\n\n.. Scout   \n.. Sniper  \n.. Soldier \n.. Demoman \n.. Medic   \n.. Hwguy   \n.. Pyro    \n.. Spy     \n.. Engineer\n\n.. Ãõóôïí! \n", resume_suffix);
 			// end Neo mod
 		}
 	}
@@ -869,7 +904,14 @@ void(float inp) Menu_Class_Input =
 {
 	if (inp > 10 || inp < 1)
 		return;
-
+    
+    // STAL BACKPORT: picking a fresh class discards any saved career
+    local entity te;
+    te = FindMy(self, "career");
+    if (te)
+        dremove(te);
+    // END BACKPORT
+    
 	if (inp==10 && custom_mode==2)
 	{
 	  self.impulse = 0;

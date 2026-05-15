@@ -685,8 +685,26 @@ void() JobJudoka =
 	if (trace_ent.classname == "player") {
 		if (trace_ent.#runes & #RUNE_RESIS)
 		{
-			sprint (self, #PRINT_HIGH, "He is protected by a mysterious power!\n"); //WK Typo
-			return;
+            if (!neo)
+            {
+                sprint (self, #PRINT_HIGH, "He is protected by a mysterious power!\n"); //WK Typo
+                return;
+            }
+            else
+			{
+				// STAL: Neo has all runes, so Resist would normally make him immune
+				// immune to Judo. Instead, give the Judoka a small chance to slip
+				// past the protection, though most of the time Neo still resists.
+				if (random() < 0.7) //30% success rate
+				{
+					sprint (self, #PRINT_HIGH, "Neo deflects your attempt with ease!\n");
+					sprint (trace_ent, #PRINT_HIGH, self.netname);
+					sprint (trace_ent, #PRINT_HIGH, " tried to disarm you, but you brushed it off.\n");
+					return;
+				}
+				// Otherwise, fall through and let the disarm proceed.
+				sprint (self, #PRINT_HIGH, "You catch Neo off guard!\n");
+			}
 		}
 		//WK 5-15-08 Don't judo people who are reloading and thus don't have a weapon out
 		if (trace_ent.tfstate & #TFSTATE_RELOADING) {
@@ -856,7 +874,7 @@ void () JobTKDThink =
 	//Normalize speed back down to max allowed
 	if (playerspeed > self.owner.maxspeed) playerspeed = self.owner.maxspeed / playerspeed;
 	else playerspeed = 1;
-	self.owner.velocity = self.owner.velocity * playerspeed;
+	//self.owner.velocity = self.owner.velocity * playerspeed; - STAL: No TKD airbrake - incoming balance issues :) 
 	self.owner.gravity = 1;
 
 	self.think = SUB_Remove;

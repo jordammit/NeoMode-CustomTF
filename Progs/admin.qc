@@ -426,6 +426,76 @@ void(float targetteam) Admin_Assign =
 		sprint(self, #PRINT_HIGH, "No target client selected!\n");
 };
 
+//=====================================================================
+// STAL: Admin sets the target client's skin. Only "neo" and "asmith" are allowed.
+// Pass an empty string to reset the skin back to default.
+
+void(string skinname) Admin_SetSkin =
+{
+    if (self.admin_kick == world)
+    {
+        sprint(self, #PRINT_HIGH, "No target client selected!\n");
+        return;
+    }
+
+    // Standard target validation (matches Admin_Assign / Admin_Cuff / Admin_Mute)
+    if (!HasValidAdminTarget(self))
+        return;
+
+    // Only allow this on actual players, not spectators
+    if (self.admin_kick.classname != "player")
+    {
+        sprint(self, #PRINT_HIGH, "You can only change the skin of players!\n");
+        return;
+    }
+
+    if (!ValidClientState(self.admin_kick))
+        return;
+
+    // Empty arg = reset to default skin
+    if (skinname == "" || skinname == string_null)
+    {
+        setinfo(self.admin_kick, "skin", "");
+
+        //sprint(self.admin_kick, #PRINT_HIGH, "Your skin has been reset by the admin.\n");
+
+        //RPrint(self.netname);
+        //RPrint(" resets the skin of ");
+        //RPrint(self.admin_kick.netname);
+        //RPrint("\n");
+
+        //bprint(#PRINT_HIGH, "The admin ", self.netname,
+        //       " resets the skin of ", self.admin_kick.netname, "\n");
+        return;
+    }
+
+    // Whitelist: only "neo" and "asmith" are permitted
+    if (skinname != "neo" && skinname != "asmith")
+    {
+        sprint(self, #PRINT_HIGH, "Invalid skin! Allowed skins: neo, asmith\n");
+        return;
+    }
+
+    // Apply the skin via userinfo (NOT stuffcmd players must 
+    // not be able to change this themselves).The client will 
+    // load fortress/skins/<skinname>.pcx.
+    setinfo(self.admin_kick, "skin", skinname);
+
+    //sprint(self.admin_kick, #PRINT_HIGH, "Your skin has been changed by the admin to ");
+    //sprint(self.admin_kick, #PRINT_HIGH, skinname);
+    //sprint(self.admin_kick, #PRINT_HIGH, "\n");
+
+    //RPrint(self.netname);
+    //RPrint(" sets the skin of ");
+    //RPrint(self.admin_kick.netname);
+    //RPrint(" to ");
+    //RPrint(skinname);
+    //RPrint("\n");
+
+    //bprint(#PRINT_HIGH, "The admin ", self.netname,
+    //       " sets the skin of ", self.admin_kick.netname,
+    //       " to ", skinname, "\n");
+};
 //======================================================================
 // The admin wants to type on a client console
 

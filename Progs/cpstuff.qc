@@ -354,7 +354,9 @@ float (string skin_str) Is_TF_Skin =
 	&& skin_str != "tf_hwguy"
 	&& skin_str != "tf_pyro"
 	&& skin_str != "tf_spy"
-	&& skin_str != "tf_eng")
+	&& skin_str != "tf_eng"
+    && skin_str != "neo"
+    && skin_str != "asmith")
 		return #FALSE;
    else
 		return #TRUE;

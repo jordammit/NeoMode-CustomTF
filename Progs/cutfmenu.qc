@@ -2702,10 +2702,16 @@ void(float inp) Menu_Option_Input =
 		HelpString("Executes the 'ид' command for you automatically every second.");
 		Menu_Option();
 	}
-	if (inp == 2) { 
-		BuyItem(#COST_RESPAWNGUARD,#NIT_RESPAWN_GUARD);
-		HelpString("When you respawn, you are invulnerable for #RESPAWN_GUARD_TIME seconds.");
-		Menu_Option();
+	if (inp == 2) {
+        if (neo) //STAL 26/05/06: Disallow purchase of RG when Neo Mode is enabled
+        {
+            sprint(self,#PRINT_HIGH,"No Respawn Guard during Neo Mode, buckaroo.\n");
+            CuTFMenuSound(#MENUSOUND_WRONG);
+        } else {
+            BuyItem(#COST_RESPAWNGUARD,#NIT_RESPAWN_GUARD);
+            HelpString("When you respawn, you are invulnerable for #RESPAWN_GUARD_TIME seconds.");
+            Menu_Option();
+        }
 	}
 	if (inp == 3) {
 		BuyItem(#COST_HOVERBOOTS,#NIT_HOVER_BOOTS);

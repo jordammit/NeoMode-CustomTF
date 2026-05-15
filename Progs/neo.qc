@@ -78,7 +78,7 @@ float neoRegenFactor;    // final regen factor
 							 // not a 'true' percentage; look at how it's used
 #endif
 
-#define CUTF_URL customtf.net/forum/
+#define CUTF_URL discord.gg/fp9sSZ5
 
 //=================================================================
 // called by the localinfo key initializing function
@@ -130,7 +130,7 @@ void() Neo_initialize =
 //=================================================================
 void() Neo_introducePlayer =
 {
-	sprint(self, #PRINT_HIGH, " ŒÂÔ ÕÔ‰Â Enabled \n");
+	//sprint(self, #PRINT_HIGH, " ŒÂÔ ÕÔ‰Â Enabled \n");
 	//DELETE this once out of 'test period'
 	local string temp; 
 	temp = colstr("This is a TEST version.\nPlease report bugs to #CUTF_URL.\n", #COLSTR_RED);
@@ -146,7 +146,7 @@ void() Neo_introducePlayer =
 	else
 		sprint(self, #PRINT_HIGH, "First player to kill another player becomes Neo.\n");
 
-	sprint(self, #PRINT_HIGH, "\n");
+	sprint(self, #PRINT_HIGH, "\n");
 	stuffcmd(self, "play boss1/sight1.wav\n");
 };
 //=================================================================
@@ -449,6 +449,7 @@ void(entity attacker) Neo_assignNeo =
 	self = attacker;
 	self.admin_kick = attacker;
 	Admin_Assign(1);
+    Admin_SetSkin("neo");
 	Neo_possessionsChangeTeam(attacker, 1);
 
 	// give attacker (Neo) all the CuTF runes
@@ -486,6 +487,7 @@ void(entity player) Neo_removeNeo =
 	Admin_Assign(2);
 	self = oldSelf;
 	Neo_possessionsChangeTeam(player, 2);
+    Admin_SetSkin("asmith");
 
 	// remove player's runes
 	EndRunes();

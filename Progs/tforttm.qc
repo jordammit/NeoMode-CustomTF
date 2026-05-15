@@ -499,20 +499,20 @@ void() TeamFortress_CheckTeamCheats =
 		// OfN kick custom player classes using a non TF-skin
 		if (self.playerclass == #PC_CUSTOM && !Is_TF_Skin(st))
 		{
-			TeamFortress_SetSkin(self);
+		//	TeamFortress_SetSkin(self);
 
 			// PZ: Don't kick them anymore. Just set it back and annoy them for changing it, so that they won't want to keep changing it.
-		#ifdef #KICK_FOR_CHANGING_BAD_STUFF
-			bprint(#PRINT_MEDIUM, self.netname, " has been kicked for changing skin.\n");
-			sprint(self, #PRINT_HIGH, "You have been kicked for changing your skin. Don't do it.\n");
-			sprint(self, #PRINT_HIGH, "Check that you don't have a .cfg file that is changing your skin.\n"); // PZ: added
-			stuffcmd(self, "disconnect\n");
-		#else
-			bprint(#PRINT_MEDIUM, self.netname, " has been punched for changing skin.\n");
-			sprint(self, #PRINT_HIGH, "You have been punched for changing your skin. Don't do it.\n");
-			sprint(self, #PRINT_HIGH, "Check that you don't have a .cfg file that is changing your skin.\n"); // PZ: added
-			TF_T_Damage(self, world, world, 50, 0, 0);
-		#endif
+		//#ifdef #KICK_FOR_CHANGING_BAD_STUFF
+		//	bprint(#PRINT_MEDIUM, self.netname, " has been kicked for changing skin.\n");
+		//	sprint(self, #PRINT_HIGH, "You have been kicked for changing your skin. Don't do it.\n");
+		//	sprint(self, #PRINT_HIGH, "Check that you don't have a .cfg file that is changing your skin.\n"); // PZ: added
+		//	stuffcmd(self, "disconnect\n");
+		//#else
+		//	bprint(#PRINT_MEDIUM, self.netname, " has been punched for changing skin.\n");
+		//	sprint(self, #PRINT_HIGH, "You have been punched for changing your skin. Don't do it.\n");
+		//	sprint(self, #PRINT_HIGH, "Check that you don't have a .cfg file that is changing your skin.\n"); // PZ: added
+		//	TF_T_Damage(self, world, world, 50, 0, 0);
+		//#endif
 		}
 
 		if ((self.cutf_items & #CUTF_SPY_KIT) && self.undercover_skin != 0)
@@ -522,24 +522,28 @@ void() TeamFortress_CheckTeamCheats =
 			self.playerclass = self.undercover_skin;
 		}
 
-		if ( self.playerclass == #PC_SCOUT )
+		if ( self.playerclass == #PC_SCOUT && !neo )
 			sk = "tf_scout";
-		else if ( self.playerclass == #PC_SNIPER )
+		else if ( self.playerclass == #PC_SNIPER && !neo )
 			sk = "tf_snipe";
-		else if ( self.playerclass == #PC_SOLDIER )
+		else if ( self.playerclass == #PC_SOLDIER && !neo )
 			sk = "tf_sold";
-		else if ( self.playerclass == #PC_DEMOMAN )
+		else if ( self.playerclass == #PC_DEMOMAN && !neo )
 			sk = "tf_demo";
-		else if ( self.playerclass == #PC_MEDIC )
+		else if ( self.playerclass == #PC_MEDIC && !neo )
 			sk = "tf_medic";
-		else if ( self.playerclass == #PC_HVYWEAP )
+		else if ( self.playerclass == #PC_HVYWEAP && !neo )
 			sk = "tf_hwguy";
-		else if ( self.playerclass == #PC_PYRO )
+		else if ( self.playerclass == #PC_PYRO && !neo )
 			sk = "tf_pyro";
-		else if ( self.playerclass == #PC_SPY )
+		else if ( self.playerclass == #PC_SPY && !neo )
 			sk = "tf_spy";
-		else if ( self.playerclass == #PC_ENGINEER )
+		else if ( self.playerclass == #PC_ENGINEER && !neo )
 			sk = "tf_eng";
+        else if ( neo && self.team_no == 1 )
+			sk = "neo";
+        else if ( neo && self.team_no == 2 )
+			sk = "asmith";
 		else
 		{
 			if ((self.cutf_items & #CUTF_SPY_KIT) && self.undercover_skin != 0)
@@ -556,33 +560,33 @@ void() TeamFortress_CheckTeamCheats =
 		}
 
 		//WK Ignore our custom, spy-kitting friends. Kick everyone else
-		if ((st != sk) && !((self.playerclass == #PC_CUSTOM) && (self.cutf_items & #CUTF_SPY_KIT)))
-		{
-			#ifdef #CHEAT_WARNINGS
-				RPrint(self.netname);
-				RPrint(" had his skin reset.\n");
-			#endif
+		//if ((st != sk) && !((self.playerclass == #PC_CUSTOM) && (self.cutf_items & #CUTF_SPY_KIT)))
+		//{
+		//	#ifdef #CHEAT_WARNINGS
+		//		RPrint(self.netname);
+		//		RPrint(" had his skin reset.\n");
+		//	#endif
 
-			TeamFortress_SetSkin(self);
+			// TeamFortress_SetSkin(self);
 
 			// PZ: I THINK IT WOULD BE BETTER IF I JUST DON'T ALLOW PLAYERS TO CHANGE THEIR USERINFO FOR SKIN, TEAM, AND COLOR.
 			// PZ: Don't kick them anymore. Just set it back and annoy them for changing it, so that they won't want to keep changing it.
-		#ifdef #KICK_FOR_CHANGING_BAD_STUFF
-			bprint2(#PRINT_MEDIUM, self.netname, " has been kicked for changing skin.\n");
-			sprint(self, #PRINT_HIGH, "You have been kicked for changing your skin. Don't do it.\n");
-			sprint(self, #PRINT_HIGH, "Check that you don't have a .cfg file that is changing your skin.\n"); // PZ: added
-			stuffcmd(self, "disconnect\n");
-		#else
-			bprint2(#PRINT_MEDIUM, self.netname, " has been punched for changing skin.\n");
-			sprint(self, #PRINT_HIGH, "You have been punched for changing your skin. Don't do it.\n");
-			sprint(self, #PRINT_HIGH, "Check that you don't have a .cfg file that is changing your skin.\n"); // PZ: added
-			TF_T_Damage(self, world, world, 60, 0, 0);
-			knockDirection_x = crandom() * 900; // random float between -1 and +1
-			knockDirection_y = crandom() * 900;
-			knockDirection_z = 150;
-			self.velocity = self.velocity + knockDirection;
-		#endif
-		}
+		//#ifdef #KICK_FOR_CHANGING_BAD_STUFF
+		//	bprint2(#PRINT_MEDIUM, self.netname, " has been kicked for changing skin.\n");
+		//	sprint(self, #PRINT_HIGH, "You have been kicked for changing your skin. Don't do it.\n");
+		//	sprint(self, #PRINT_HIGH, "Check that you don't have a .cfg file that is changing your skin.\n"); // PZ: added
+		//	stuffcmd(self, "disconnect\n");
+		//#else
+		//	bprint2(#PRINT_MEDIUM, self.netname, " has been punched for changing skin.\n");
+		//	sprint(self, #PRINT_HIGH, "You have been punched for changing your skin. Don't do it.\n");
+		//	sprint(self, #PRINT_HIGH, "Check that you don't have a .cfg file that is changing your skin.\n"); // PZ: added
+		//	TF_T_Damage(self, world, world, 60, 0, 0);
+		//	knockDirection_x = crandom() * 900; // random float between -1 and +1
+		//	knockDirection_y = crandom() * 900;
+		//	knockDirection_z = 150;
+		//	self.velocity = self.velocity + knockDirection;
+		//#endif
+		//}
 	}
 #endif
 
@@ -615,10 +619,10 @@ void() TeamFortress_CheckTeamCheats =
 				//stuffcmd(self, st);
 				//stuffcmd(self, "\n");
 
-				bprint2(#PRINT_MEDIUM, self.netname, " has been kicked for changing color.\n");
-				sprint(self, #PRINT_HIGH, "You have been kicked for changing your color. Don't do it.\n");
-				sprint(self, #PRINT_HIGH, "Check that you don't have a .cfg file that is changing your color.\n"); // PZ: added
-				stuffcmd(self, "disconnect\n");
+				//bprint2(#PRINT_MEDIUM, self.netname, " has been kicked for changing color.\n");
+				//sprint(self, #PRINT_HIGH, "You have been kicked for changing your color. Don't do it.\n");
+				//sprint(self, #PRINT_HIGH, "Check that you don't have a .cfg file that is changing your color.\n"); // PZ: added
+				//stuffcmd(self, "disconnect\n");
 				return;
 			}
 		}
@@ -637,10 +641,10 @@ void() TeamFortress_CheckTeamCheats =
 			//stuffcmd(self, st);
 			//stuffcmd(self, "\n");
 
-			bprint2(#PRINT_MEDIUM, self.netname, " has been kicked for changing color.\n");
-			sprint(self, #PRINT_HIGH, "You have been kicked for changing your color. Don't do it.\n");
-			sprint(self, #PRINT_HIGH, "Check that you don't have a .cfg file that is changing your color.\n"); // PZ: added
-			stuffcmd(self, "disconnect\n");
+			//bprint2(#PRINT_MEDIUM, self.netname, " has been kicked for changing color.\n");
+			//sprint(self, #PRINT_HIGH, "You have been kicked for changing your color. Don't do it.\n");
+			//sprint(self, #PRINT_HIGH, "Check that you don't have a .cfg file that is changing your color.\n"); // PZ: added
+			//stuffcmd(self, "disconnect\n");
 			return;
 		}
 	#else
@@ -670,10 +674,10 @@ void() TeamFortress_CheckTeamCheats =
 				//stuffcmd(self, st);
 				//stuffcmd(self, "\n");
 
-				bprint2(#PRINT_MEDIUM, self.netname, " has been kicked for changing color.\n");
-				sprint(self, #PRINT_HIGH, "You have been kicked for changing your color. Don't do it.\n");
-				sprint(self, #PRINT_HIGH, "Check that you don't have a .cfg file that is changing your color.\n"); // PZ: added
-				stuffcmd(self, "disconnect\n");
+				//bprint2(#PRINT_MEDIUM, self.netname, " has been kicked for changing color.\n");
+				//sprint(self, #PRINT_HIGH, "You have been kicked for changing your color. Don't do it.\n");
+				//sprint(self, #PRINT_HIGH, "Check that you don't have a .cfg file that is changing your color.\n"); // PZ: added
+				//stuffcmd(self, "disconnect\n");
 				return;
 			}
 		}
@@ -697,10 +701,10 @@ void() TeamFortress_CheckTeamCheats =
 			//stuffcmd(self, st);
 			//stuffcmd(self, "\n");
 
-			bprint2(#PRINT_MEDIUM, self.netname, " has been kicked for changing color.\n");
-			sprint(self, #PRINT_HIGH, "You have been kicked for changing your color. Don't do it.\n");
-			sprint(self, #PRINT_HIGH, "Check that you don't have a .cfg file that is changing your color.\n"); // PZ: added
-			stuffcmd(self, "disconnect\n");
+			//bprint2(#PRINT_MEDIUM, self.netname, " has been kicked for changing color.\n");
+			//sprint(self, #PRINT_HIGH, "You have been kicked for changing your color. Don't do it.\n");
+			//sprint(self, #PRINT_HIGH, "Check that you don't have a .cfg file that is changing your color.\n"); // PZ: added
+			//stuffcmd(self, "disconnect\n");
 			return;
 		}
 	#endif
@@ -719,10 +723,10 @@ void() TeamFortress_CheckTeamCheats =
 
 				// Set the player's team
 				SetTeamName(self);
-				bprint2(#PRINT_MEDIUM, self.netname, " has been kicked for changing team.\n");
-				sprint(self, #PRINT_HIGH, "You have been kicked for changing your team. Don't do it.\n");
-				sprint(self, #PRINT_HIGH, "Check that you don't have a .cfg file that is changing your team.\n"); // PZ: added
-				stuffcmd(self, "disconnect\n");
+				//bprint2(#PRINT_MEDIUM, self.netname, " has been kicked for changing team.\n");
+				//sprint(self, #PRINT_HIGH, "You have been kicked for changing your team. Don't do it.\n");
+				//sprint(self, #PRINT_HIGH, "Check that you don't have a .cfg file that is changing your team.\n"); // PZ: added
+				//stuffcmd(self, "disconnect\n");
 				return;
 			}
 		}

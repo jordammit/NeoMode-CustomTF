@@ -14,6 +14,43 @@ void() info_notnull =
 {
 };
 
+// STAL: Generic reusable wrapper for info_notnull maphacks.
+// Calls self.think on a disposable clone, preserving the original entity.
+// 
+// Map entity setup example:
+//   "classname" "info_notnull"
+//   "targetname" "det_explode"
+//   "use" "force_reusable"
+//   "think" "TeamFortress_DetpackExplode"
+//
+// "use" always points to this wrapper.
+// "think" points to the actual function you want to execute.
+// The wrapper spawns a temporary entity at self.origin,
+// runs self.think on it, and self survives.
+void() force_reusable =
+{
+    local entity proxy;
+
+    if (!self.think)
+        return;
+
+    proxy = spawn();
+    setorigin(proxy, self.origin);
+    proxy.owner = self.owner;
+    proxy.classname = "entity_proxy";
+    proxy.movetype = #MOVETYPE_NONE;
+    proxy.enemy = self.enemy;
+    proxy.noise = self.noise;
+    proxy.noise1 = self.noise1;
+
+    local entity oself;
+    oself = self;
+    self = proxy;
+    oself.think();
+    self = oself;
+};
+
+
 
 //============================================================================
 

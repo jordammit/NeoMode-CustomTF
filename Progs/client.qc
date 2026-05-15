@@ -126,62 +126,168 @@ void() info_intermission =
 	}
 };
 
+/*
+============
+STAL: Backport from 2026 CuTF.
+finds an entity with the given 
+classname owned by towner. used 
+by the class-resume system to 
+look up the saved career.
+============
+*/
+
+entity(entity towner, string tclassname) FindMy =
+{
+    local entity te;
+
+    te = find(world, classname, tclassname);
+
+    while (te)
+    {
+        if (te.owner == towner)
+            return te;
+
+        te = find(te, classname, tclassname);
+    }
+
+    return world;
+};
 
 void() SetChangeParms =
 {
-	if (self.health <= 0)
-	{
-		SetNewParms ();
-		return;
-	}
+    if (self.health <= 0)
+    {
+        SetNewParms ();
+        return;
+    }
 
-	// remove items
-	self.items = self.items - (self.items & (#IT_KEY1 | #IT_KEY2 | #IT_INVISIBILITY | #IT_INVULNERABILITY | #IT_SUIT | #IT_QUAD) );
-	
-	// cap super health
-	if (self.health > 100)
-		self.health = 100;
-	if (self.health < 50)
-		self.health = 50;
-	parm1 = self.items;
-	parm2 = self.health;
-	parm3 = self.armorvalue;
-	if (self.ammo_shells < 25)
-		parm4 = 25;
-	else
-		parm4 = self.ammo_shells;
-	parm5 = self.ammo_nails;
-	parm6 = self.ammo_rockets;
-	parm7 = self.ammo_cells;
-	parm8 = self.current_weapon;
-	parm9 = self.armortype * 100;
+    // STAL BACKPORT: class-resume save path ===
+    // If the player is currently a custom class (and not still building one),
+    // pack their loadout into the parms so the next map can resume it.
+    if (self.playerclass == #PC_CUSTOM && !(self.done_custom & #CUSTOM_BUILDING))
+    {
+        local float hp_tier, speed_tier;
+        
+        // Derive max_health/maxarmor tier (0-7) from current values.
+        // Mirrors 2604's GetCurrentHPItem2 logic.
+        if (self.maxarmor == 300)
+            hp_tier = 7;
+        else if (self.maxarmor == 200)
+            hp_tier = 6;
+        else if (self.maxarmor == 150)
+            hp_tier = 5;
+        else if (self.maxarmor == 120)
+            hp_tier = 4;
+        else if (self.maxarmor == 100)
+            hp_tier = 3;
+        else if (self.max_health == 90)
+            hp_tier = 2;
+        else if (self.max_health == 75)
+            hp_tier = 1;
+        else
+            hp_tier = 0;
 
-	// TeamFortress Parameters
-	parm10 = toggleflags;  // Store the global ToggleFlag settings
-	parm11 = 0; 		   // Random Playerclass
-	parm12 = 0;
+        // Derive custom_speed tier (1-7, or 0 if non-standard).
+        if (self.custom_speed == #CUSTOM_SPEED1)
+            speed_tier = 1;
+        else if (self.custom_speed == #CUSTOM_SPEED2)
+            speed_tier = 2;
+        else if (self.custom_speed == #CUSTOM_SPEED3)
+            speed_tier = 3;
+        else if (self.custom_speed == #CUSTOM_SPEED4)
+            speed_tier = 4;
+        else if (self.custom_speed == #CUSTOM_SPEED5)
+            speed_tier = 5;
+        else if (self.custom_speed == #CUSTOM_SPEED6)
+            speed_tier = 6;
+        else if (self.custom_speed == #CUSTOM_SPEED7)
+            speed_tier = 7;
+        else
+            speed_tier = 0;
+
+        parm1 = self.tf_items;
+        parm2 = self.cutf_items;
+        parm3 = self.cutf2_items;
+        parm4 = self.weapons_carried;
+        parm5 = self.job & (#JOB_ALL | #JOB_EXTRA1 | #JOB_EXTRA2 | #JOB_BLOODY_KNIFE);
+        parm6 = self.money;
+        parm7 = self.tp_grenades_1 + (self.tp_grenades_2 * 32);
+        parm8 = hp_tier + (speed_tier * 16);   // pack two tiers in one parm
+        parm9 = 9999;               // SENTINEL: tells DecodeLevelParms this is career data
+
+        // stock TF parameters
+        parm10 = toggleflags;
+        parm11 = 0;
+        parm12 = 0;
 
 #ifdef COOP_MODE
-	if (toggleflags & #TFLAG_CLASS_PERSIST)
-	{
-		if (self.tfstate & #TFSTATE_RANDOMPC)
-		{
-			parm11 = (parm11 | #TFSTATE_RANDOMPC);
-			self.playerclass = 1 + floor(random() * (#PC_RANDOM - 1));
-			while(!IsLegalClass(self.playerclass))
-				self.playerclass = 1 + floor(random() * (#PC_RANDOM - 1));
-		}
-
-		parm12 = self.playerclass;				// save the playerclass between levels in parm12
-	}											// if the toggleflag CLASS_PERSIST is set
+        if (toggleflags & #TFLAG_CLASS_PERSIST)
+        {
+            if (self.tfstate & #TFSTATE_RANDOMPC)
+                parm11 = (parm11 | #TFSTATE_RANDOMPC);
+            parm12 = self.playerclass;
+        }
 #endif
 
 #ifdef STATUSBAR
-	parm13 = self.StatusBarRes;
-	parm14 = self.StatusBarSize;
+        parm13 = self.StatusBarRes;
+        parm14 = self.StatusBarSize;
 #endif
 #ifdef QUAKE_WORLD
-	parm15 = self.admin_flag; //CH Pass along admin status :)
+        parm15 = self.admin_flag;
+        parm16 = self.max_health;
+#endif
+        return;
+    }
+    // === END BACKPORT ===
+
+    // remove items
+    self.items = self.items - (self.items & (#IT_KEY1 | #IT_KEY2 | #IT_INVISIBILITY | #IT_INVULNERABILITY | #IT_SUIT | #IT_QUAD) );
+    
+    // cap super health
+    if (self.health > 100)
+        self.health = 100;
+    if (self.health < 50)
+        self.health = 50;
+    parm1 = self.items;
+    parm2 = self.health;
+    parm3 = self.armorvalue;
+    if (self.ammo_shells < 25)
+        parm4 = 25;
+    else
+        parm4 = self.ammo_shells;
+    parm5 = self.ammo_nails;
+    parm6 = self.ammo_rockets;
+    parm7 = self.ammo_cells;
+    parm8 = self.current_weapon;
+    parm9 = self.armortype * 100;
+
+    // TeamFortress Parameters
+    parm10 = toggleflags;
+    parm11 = 0;
+    parm12 = 0;
+
+#ifdef COOP_MODE
+    if (toggleflags & #TFLAG_CLASS_PERSIST)
+    {
+        if (self.tfstate & #TFSTATE_RANDOMPC)
+        {
+            parm11 = (parm11 | #TFSTATE_RANDOMPC);
+            self.playerclass = 1 + floor(random() * (#PC_RANDOM - 1));
+            while(!IsLegalClass(self.playerclass))
+                self.playerclass = 1 + floor(random() * (#PC_RANDOM - 1));
+        }
+
+        parm12 = self.playerclass;
+    }
+#endif
+
+#ifdef STATUSBAR
+    parm13 = self.StatusBarRes;
+    parm14 = self.StatusBarSize;
+#endif
+#ifdef QUAKE_WORLD
+    parm15 = self.admin_flag;
 #endif
 };
 
@@ -460,7 +566,47 @@ void() DecodeLevelParms =
 		if (world.model == "maps/start.bsp")
 			SetNewParms (); 	// take away all stuff on starting new episode
 	}
-	
+    
+    // STAL BACKPORT: class-resume read path ===
+    // If parm9 is the sentinel value 9999, the previous map saved career data
+    // instead of standard ammo/health. Spawn a career entity to hold it; the
+    // standard parm1..parm9 reads below would clobber player fields incorrectly,
+    // so skip them entirely for the career case (PutClientInServer will set
+    // sane defaults for ammo/health, and PasteCareer will restore the rest).
+    if (parm9 == 9999)
+    {        
+        local entity career;
+        career = spawn();
+        career.takedamage = #DAMAGE_NO;
+        career.owner = self;
+        career.classname = "career";
+        career.tf_items = parm1;
+        career.cutf_items = parm2;
+        career.cutf2_items = parm3;
+        career.weapons_carried = parm4;
+        career.job = parm5;
+        career.money = parm6;
+        career.tp_grenades_1 = parm7 - (floor(parm7 / 32) * 32);
+        career.tp_grenades_2 = floor(parm7 / 32);
+        // parm8 is playerclass (= PC_CUSTOM), parm9 is the sentinel -- not stored.
+        career.max_health = parm8 - (floor(parm8 / 16) * 16);   // low nibble
+        career.custom_speed = floor(parm8 / 16);                // high nibble
+        career.armorvalue = parm16;  // hijacked field: holds original max_health
+    }
+    else
+    {
+        self.items = parm1;
+        self.health = parm2;
+        self.armorvalue = parm3;
+        self.ammo_shells = parm4;
+        self.ammo_nails = parm5;
+        self.ammo_rockets = parm6;
+        self.ammo_cells = parm7;
+        self.current_weapon = parm8;
+        self.armortype = parm9 * 0.01;
+    }
+    // === END BACKPORT ===
+    
 	self.items = parm1;
 	self.health = parm2;
 	self.armorvalue = parm3;
@@ -749,6 +895,258 @@ void() DecodeLevelParms =
 	if (parm15)
 		self.admin_flag = parm15; //CH Admin status :)
 #endif
+};
+
+// STAL BACKPORT: rebuild maxammo_* from saved class fields
+// Mirrors the buy-time max-ammo logic from custom.qc and cutfmenu.qc.
+// Must run BEFORE DropFromCustomClassGen, which expects maxammo_* to already
+// reflect the buy-flow state (it then does its own +/- adjustments).
+void() RebuildMaxAmmoFromWeapons =
+{    
+    local float wc, ci, c2;
+
+    // Baseline (custom.qc:124-129)
+    self.maxammo_shells = 10;
+    self.maxammo_nails = 10;
+    self.maxammo_rockets = 10;
+    self.maxammo_cells = 10;
+    self.maxammo_medikit = 0;
+    self.maxammo_detpack = 0;
+
+    wc = self.weapons_carried;
+    ci = self.cutf_items;
+    c2 = self.cutf2_items;
+
+    // Per-weapon allotments via count* helpers (custom.qc:475-506)
+    if (wc & #WEAP_SHOTGUN)
+        self.maxammo_shells = self.maxammo_shells + countshells(#WEAP_SHOTGUN);
+    if (wc & #WEAP_SUPER_SHOTGUN)
+        self.maxammo_shells = self.maxammo_shells + countshells(#WEAP_SUPER_SHOTGUN);
+    if (wc & #WEAP_ASSAULT_CANNON)
+    {
+        self.maxammo_shells = self.maxammo_shells + countshells(#WEAP_ASSAULT_CANNON);
+        self.maxammo_cells  = self.maxammo_cells  + countcells(#WEAP_ASSAULT_CANNON);
+    }
+    if (wc & #WEAP_SPANNER)
+    {
+        self.maxammo_shells  = self.maxammo_shells  + countshells(#WEAP_SPANNER);
+        self.maxammo_rockets = self.maxammo_rockets + countrockets(#WEAP_SPANNER);
+        self.maxammo_cells   = self.maxammo_cells   + countcells(#WEAP_SPANNER);
+    }
+    if (wc & #WEAP_MAUSER)
+        self.maxammo_nails = self.maxammo_nails + countnails(#WEAP_MAUSER);
+    if (wc & #WEAP_TRANQ)
+        self.maxammo_nails = self.maxammo_nails + countnails(#WEAP_TRANQ);
+    if (wc & #WEAP_RAILGUN)
+        self.maxammo_nails = self.maxammo_nails + countnails(#WEAP_RAILGUN);
+    if (wc & #WEAP_NAILGUN)
+        self.maxammo_nails = self.maxammo_nails + countnails(#WEAP_NAILGUN);
+    if (wc & #WEAP_LIGHT_ASSAULT)
+        self.maxammo_nails = self.maxammo_nails + countnails(#WEAP_LIGHT_ASSAULT);
+    if (wc & #WEAP_ROCKET_LAUNCHER)
+        self.maxammo_rockets = self.maxammo_rockets + countrockets(#WEAP_ROCKET_LAUNCHER);
+    if (wc & #WEAP_GRENADE_LAUNCHER)
+        self.maxammo_rockets = self.maxammo_rockets + countrockets(#WEAP_GRENADE_LAUNCHER);
+    if (wc & #WEAP_DAEDALUS)
+        self.maxammo_cells = self.maxammo_cells + countcells(#WEAP_DAEDALUS);
+    if (wc & #WEAP_LIGHTNING)
+        self.maxammo_cells = self.maxammo_cells + countcells(#WEAP_LIGHTNING);
+
+    // Inline bumps from cutfmenu.qc not covered by count* helpers
+    if (wc & #WEAP_SNIPER_RIFLE)               // cutfmenu.qc:483 (bundles Sniper+AutoRifle)
+        self.maxammo_shells = self.maxammo_shells + 75;
+    if (wc & #WEAP_INCENDIARY)                 // cutfmenu.qc:628 (Pyro Toys bundle)
+    {
+        self.maxammo_rockets = self.maxammo_rockets + 60;
+        self.maxammo_cells   = self.maxammo_cells   + 200;
+    }
+    if (wc & #WEAP_MEDIKIT)                    // cutfmenu.qc:933
+        self.maxammo_medikit = self.maxammo_medikit + 80;
+
+    // Inline bumps from BuyCuTF/BuyCuTF2 (custom.qc:570, 599)
+    if (ci & #CUTF_SENTRYGUN)
+    {
+        self.maxammo_shells = self.maxammo_shells + 130;
+        self.maxammo_cells  = self.maxammo_cells  + 130;
+    }
+    if (c2 & #CUTF2_SHINIGAMI)
+        self.maxammo_shells = self.maxammo_shells + 75;
+
+    // Inline bumps from cutfmenu.qc (Cyberaug, Detpack)
+    if (ci & #CUTF_CYBERAUG)                   // cutfmenu.qc:1834
+    {
+        self.maxammo_medikit = self.maxammo_medikit + 80;
+        self.maxammo_cells   = self.maxammo_cells   + 80;
+    }
+    if (ci & #CUTF_DETPACK)                    // cutfmenu.qc:1807
+        self.maxammo_detpack = self.maxammo_detpack + 1;
+};
+
+/*
+============
+STAL: Backport (simplified) from 2026 CuTF
+copies the saved career entity's fields
+back onto the player, then removes the 
+entity. Caller must ensure a career entity 
+exists for self.
+============
+*/
+void() PasteCareer =
+{
+    local entity te;
+    local float inp;
+
+    te = FindMy(self, "career");
+
+    if (!te)
+        return;
+
+    self.tf_items     = te.tf_items;
+    self.cutf_items   = te.cutf_items;
+    self.cutf2_items  = te.cutf2_items;
+    self.weapons_carried = te.weapons_carried;
+    self.tp_grenades_1 = te.tp_grenades_1;
+    self.tp_grenades_2 = te.tp_grenades_2;
+    self.job          = te.job;
+    self.money        = te.money;
+
+    // Restore health/armor from tier code.
+    inp = te.max_health;
+
+    if (inp == 0)
+    {
+        self.max_health = 50;
+        self.health = self.max_health;
+        self.maxarmor = 0;
+        self.armorvalue = 0;
+        self.armortype = 0;
+        self.armor_allowed = 0;
+    }
+    else if (inp == 1)
+    {
+        self.max_health = 75;
+        self.health = self.max_health;
+        self.maxarmor = 50;
+        self.armorvalue = self.maxarmor;
+        self.armortype = 0.3;
+        self.armor_allowed = 0.3;
+    }
+    else if (inp == 2)
+    {
+        self.max_health = 90;
+        self.health = self.max_health;
+        self.maxarmor = 50;
+        self.armorvalue = self.maxarmor;
+        self.armortype = 0.3;
+        self.armor_allowed = 0.3;
+    }
+    else if (inp == 3)
+    {
+        self.max_health = 80;
+        self.health = self.max_health;
+        self.maxarmor = 100;
+        self.armorvalue = self.maxarmor;
+        self.armortype = 0.6;
+        self.armor_allowed = 0.6;
+    }
+    else if (inp == 4)
+    {
+        self.max_health = 90;
+        self.health = self.max_health;
+        self.maxarmor = 120;
+        self.armorvalue = self.maxarmor;
+        self.armortype = 0.6;
+        self.armor_allowed = 0.6;
+    }
+    else if (inp == 5)
+    {
+        self.max_health = 100;
+        self.health = self.max_health;
+        self.maxarmor = 150;
+        self.armorvalue = self.maxarmor;
+        self.armortype = 0.6;
+        self.armor_allowed = 0.6;
+    }
+    else if (inp == 6)
+    {
+        self.max_health = 100;
+        self.health = self.max_health;
+        self.maxarmor = 200;
+        self.armorvalue = self.maxarmor;
+        self.armortype = 0.8;
+        self.armor_allowed = 0.8;
+    }
+    else if (inp == 7)
+    {
+        self.max_health = 100;
+        self.health = self.max_health;
+        self.maxarmor = 300;
+        self.armorvalue = self.maxarmor;
+        self.armortype = 0.8;
+        self.armor_allowed = 0.8;
+    }
+
+    // Restore custom_speed from tier code.
+    inp = te.custom_speed;
+
+    if (inp == 1)
+        self.custom_speed = #CUSTOM_SPEED1;
+    else if (inp == 2)
+        self.custom_speed = #CUSTOM_SPEED2;
+    else if (inp == 3)
+        self.custom_speed = #CUSTOM_SPEED3;
+    else if (inp == 4)
+        self.custom_speed = #CUSTOM_SPEED4;
+    else if (inp == 5)
+        self.custom_speed = #CUSTOM_SPEED5;
+    else if (inp == 6)
+        self.custom_speed = #CUSTOM_SPEED6;
+    else if (inp == 7)
+        self.custom_speed = #CUSTOM_SPEED7;
+
+    // Clear observer-state flags so the player can move
+    //self.tfstate = self.tfstate - (self.tfstate & #TFSTATE_CANT_MOVE);
+    //self.tfstate = self.tfstate - (self.tfstate & #TFSTATE_OBSERVERSTATE);
+    
+    //bprint(#PRINT_HIGH, "DEBUG: pre-drop weapons_carried=");
+    //bprint(#PRINT_HIGH, ftos(self.weapons_carried));
+    //bprint(#PRINT_HIGH, "\n");
+    
+    // STAL: re-derive maxammo from weapons_carried before drop
+    RebuildMaxAmmoFromWeapons();
+    
+    UpdateWeaponItems();
+
+    self.playerclass = #PC_CUSTOM;
+    
+    // Override tier-derived max_health with the actual saved value (which may
+    // include bonus_health from leftover money at original buy time).
+    self.max_health = te.armorvalue;
+    self.health = self.max_health;
+
+    // Suppress DropFromCustomClassGen's bonus_health block (would double-apply).
+    local float saved_money;
+    saved_money = self.money;
+    self.money = 0;
+
+    DropFromCustomClassGen();
+    
+    self.money = saved_money;
+    
+/*  
+    bprint(#PRINT_HIGH, "DEBUG: post-drop maxammo s/n/r/c = ");
+    bprint(#PRINT_HIGH, ftos(self.maxammo_shells)); bprint(#PRINT_HIGH, "/");
+    bprint(#PRINT_HIGH, ftos(self.maxammo_nails)); bprint(#PRINT_HIGH, "/");
+    bprint(#PRINT_HIGH, ftos(self.maxammo_rockets)); bprint(#PRINT_HIGH, "/");
+    bprint(#PRINT_HIGH, ftos(self.maxammo_cells)); bprint(#PRINT_HIGH, "\n");
+    bprint(#PRINT_HIGH, "DEBUG: ammo s/n/r/c = ");
+    bprint(#PRINT_HIGH, ftos(self.ammo_shells)); bprint(#PRINT_HIGH, "/");
+    bprint(#PRINT_HIGH, ftos(self.ammo_nails)); bprint(#PRINT_HIGH, "/");
+    bprint(#PRINT_HIGH, ftos(self.ammo_rockets)); bprint(#PRINT_HIGH, "/");
+    bprint(#PRINT_HIGH, ftos(self.ammo_cells)); bprint(#PRINT_HIGH, "\n"); 
+*/
+
+    dremove(te);
 };
 
 /*
@@ -2279,7 +2677,9 @@ void() PutClientInServer =
 
 	//This code is in three places. client,custom & tfort.qc
 	//WK Give them invincibility if they are a normal class or bought it
-	if ((self.playerclass >= #PC_SCOUT && self.playerclass <= #PC_RANDOM) ||
+    //STAL 26/05/06: No RG for stock classes when Neo Mode is enabled (already 
+    //disabled in custom menu for custom playerclasses)
+	if ((self.playerclass >= #PC_SCOUT && self.playerclass <= #PC_RANDOM && !neo) ||
 	self.tf_items & #NIT_RESPAWN_GUARD) {
 		self.items = self.items + #IT_INVULNERABILITY;
 		self.invincible_time = 1;
@@ -2899,12 +3299,63 @@ void() PlayerPreThink =
 			if (ping < 300) {
 				self.velocity_x = floor((3 * self.velocity_x) / 4);
 				self.velocity_y = floor((3 * self.velocity_y) / 4);
-				self.velocity_z = 0; //WK 1-7-7 Change so that observers don't fall at all
+				self.velocity_z = floor((3 * self.velocity_z) / 4); //WK 1-7-7 Change so that observers don't fall at all //STAL: changed this from 0
 			}
 		}
-		if (self.button2)
-			self.velocity = '0 0 0';
-		return;
+        /*
+        // STAL BACKPORT: jump-to-resume career when at class menu
+        if (self.button2 && self.current_menu == #MENU_CLASS)
+        {
+            if (self.button2 || self.velocity_z > 0)
+            {
+                bprint(#PRINT_HIGH, "DEBUG: button2 pressed, current_menu=");
+                bprint(#PRINT_HIGH, ftos(self.current_menu));
+                bprint(#PRINT_HIGH, " team_no=");
+                bprint(#PRINT_HIGH, ftos(self.team_no));
+                bprint(#PRINT_HIGH, " custom_mode=");
+                bprint(#PRINT_HIGH, ftos(custom_mode));
+                bprint(#PRINT_HIGH, " career=");
+                if (FindMy(self, "career") != world)
+                    bprint(#PRINT_HIGH, "yes");
+                else
+                    bprint(#PRINT_HIGH, "no");
+                bprint(#PRINT_HIGH, "\n");
+            }
+            
+            if (self.team_no)
+            if (!TeamFortress_TeamIsCivilian(self.team_no))
+            if (custom_mode != 2)
+            if (FindMy(self, "career"))
+            {
+                PasteCareer();
+                self.button2 = 0;
+                self.velocity = '0 0 0';
+                self.flags = self.flags - (self.flags & #FL_JUMPRELEASED);
+                return;
+            }
+        }
+        // END BACKPORT 
+*/
+        if ((self.button2 || self.velocity_z > 0) && self.current_menu == #MENU_CLASS)
+        {
+            // === BACKPORT: jump-to-resume career ===
+            if (!self.button0)
+            if (custom_mode != 2)
+            if (self.team_no)
+            if (!TeamFortress_TeamIsCivilian(self.team_no))
+            if (FindMy(self, "career") != world)
+            {
+                PasteCareer();
+                self.button2 = 0;
+                self.velocity = '0 0 0';
+                self.flags = self.flags - (self.flags & #FL_JUMPRELEASED);
+                return;
+            }
+            // === END BACKPORT ===
+            
+            self.velocity = '0 0 0';
+        }
+        return;
 	//WK Removed jump == autoteam
 	}
 
@@ -2979,14 +3430,16 @@ void() PlayerPreThink =
 
 	//BUNNY HOPPING CODE AND SPEED CAP
 	//WK 9/15/7. Cap overall player speed at 1600.
+	/*
 	tempspeed = vlen(self.velocity);
 	if (tempspeed > 1600) {
 		tempspeed = 1600 / tempspeed;
 		self.velocity = self.velocity * tempspeed;
 	}
+	*/
 	//WK 5-15-08 The bunny hop caps only apply while the player is on the ground or water or firing our hover boots
 	// Can't use custom_speed since it's only set on Custom PCs
-	if (self.flags & #FL_ONGROUND || self.waterlevel > 1 || (self.tf_items & #NIT_HOVER_BOOTS && self.button2)) {
+	//if (self.flags & #FL_ONGROUND || self.waterlevel > 1 || (self.tf_items & #NIT_HOVER_BOOTS && self.button2)) {
 /*		local string foobar;
 		tempspeed = vlen(self.velocity);
 		foobar = ftos(tempspeed);
@@ -3000,6 +3453,7 @@ void() PlayerPreThink =
 			sprint(self,#PRINT_HIGH,"\n");
 		}
 */			
+/*
 		//Cap bunny hopping at +100 on slow legs or for people with the flag
 		if (self.maxspeed <= 280 || (self.effects & (#EF_DIMLIGHT | #EF_BRIGHTLIGHT))) {
 			tempvel_x = self.velocity_x; //We only care about horizontal movement
@@ -3028,6 +3482,7 @@ void() PlayerPreThink =
 			}
 		}
 	}
+*/
 
 	// teleporters can force a non-moving pause time	
 	if (time < self.pausetime)
@@ -3646,6 +4101,13 @@ void() ClientDisconnect =
 	if (gameover)
 		return;
 #endif
+
+    // STAL BACKPORT: clean up any orphaned career entity
+    local entity career_te;
+    career_te = FindMy(self, "career");
+    if (career_te)
+        dremove(career_te);
+    // END BACKPORT
 
 	// for Neo mode
 	if (neo) if (self == neoLives)

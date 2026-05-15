@@ -93,6 +93,8 @@ void() TeamFortress_MOTD =
 		//WK CustomTF Commands
 		TeamFortress_Alias("custom", (#TF_CHANGEPC + #PC_CUSTOM), 0);
 		TeamFortress_Alias("upgrade", (#TF_SELL), 0);
+        //TeamFortress_Alias("modify", (#TF_MODIFY), 0); //STAL: customize a stock class - neat!
+        stuffcmd(self, "alias modify \"cmd modify %0\"\n"); //STAL: this is retarded
 		TeamFortress_Alias("skill", (#TF_SKILL), 0);
 		TeamFortress_Alias("throwdet", (#IMPULSE_THROWDETPACK), 0);
 		TeamFortress_Alias("holo", (#IMPULSE_HOLO), 0);

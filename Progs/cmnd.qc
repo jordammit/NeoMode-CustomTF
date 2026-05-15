@@ -189,6 +189,7 @@ void(string text) CmdMsg =
 	#define CMDHELP_ADMIN_CMND		24
 	#define CMDHELP_ADMIN_ENDGAME	25
 	#define CMDHELP_ADMIN_CHECK 	26
+    #define CMDHELP_ADMIN_SKIN		27
 
 // Voting
 #define CMDHELP_VOTE				32
@@ -249,7 +250,7 @@ void(string cmdstr, string helpstr, string cmdlist, string finalstr) CmdHelpPars
 };
 
 #define CMDS "Help Game Vote Admin Special Cheater"
-#define CMDS_ADMIN_ADMIN "LogOut OnLine Get Team Kick Ban Mute Cuff CeaseFire"
+#define CMDS_ADMIN_ADMIN "LogOut OnLine Get Team Skin Kick Ban Mute Cuff CeaseFire"
 #define CMDS_ADMIN_USER "OnLine Tell LogIn LogOut"
 #define CMDS_BUILD "Sentry Tesla Camera Sensor Teleporter Dispenser FieldGen"
 #define CMDS_GAME "Drop SName Build" // summon
@@ -284,6 +285,8 @@ void(float command) CmdHelp =
 		CmdHelpParse("CeaseFire","Forces a ceasefire on the server, players will not be able to attack until ceasefire ends.\nSyntax∫ cmd admin ceasefire [on|off]\n","","");
 	else if (command == #CMDHELP_ADMIN_TEAM)
 		CmdHelpParse("Team","Assign given player to the specified team.\nSyntax∫ cmd admin team n [user]\n","","");
+    else if (command == #CMDHELP_ADMIN_SKIN)
+		CmdHelpParse("Skin","Assign given player a specified skin.\nSyntax∫ cmd admin skin neo [user]\n","","");
 	else if (command == #CMDHELP_ADMIN_CMND)
 		CmdHelpParse("Cmnd","Executes given commands for the currently selected or specified client.\nSyntax∫ cmd admin cmnd \"commands\" [user]\n","","");
 	else if (command == #CMDHELP_ADMIN_GET)
@@ -307,9 +310,9 @@ void(float command) CmdHelp =
 	else if (command == #CMDHELP_VOTE)
 		CmdHelpParse("Vote","Commands for starting several kind of votes.\nAvaliable vote types are:\n",#CMDS_VOTE,"");
 	else if (command == #CMDHELP_MAP)
-		CmdHelpParse("Map","Starts voting for a switch to the specified map.\nSyntax∫ cmd vote map (MapName) [neo] [agr]\n","",""); // PZ - added AGR and Neo mode
+		CmdHelpParse("Map","Starts voting for a switch to the specified map.\nSyntax∫ cmd vote map (MapName)\n","",""); // PZ - added AGR and Neo mode... then STAL removed them
 	else if (command == #CMDHELP_NEXTMAP)
-		CmdHelpParse("NextMap","Suggests the specified map as next map.\nSyntax∫ cmd vote nextmap (MapName) [neo] [agr]\n","",""); // PZ - added AGR and Neo mode
+		CmdHelpParse("NextMap","Suggests the specified map as next map.\nSyntax∫ cmd vote nextmap (MapName)\n","",""); // PZ - added AGR and Neo mode... then STAL removed them
 	else if (command == #CMDHELP_KICK)
 		CmdHelpParse("Kick","Proposes to kick the specified user from server.\nSyntax∫ cmd vote kick (user)\n","","");
 	else if (command == #CMDHELP_CURSE)
@@ -1169,7 +1172,57 @@ float(float num_args, string arg1, string arg2, string arg3, string arg4, string
 					return #TRUE;
 				}
 			}
-			else if (!strcasecmp(arg2,"cmnd")) // CMND
+            else if (!strcasecmp(arg2,"skin")) // Skin assignment
+			{
+				// No argument
+				if (num_args == 2)
+				{
+					CmdHelp(#CMDHELP_ADMIN_SKIN); // so show help
+					return #TRUE;
+				}
+
+				// Validate the skin name. "reset" / "off" / "default" all reset.
+				if (!strcasecmp(arg3,"neo") &&
+					!strcasecmp(arg3,"asmith") &&
+					!strcasecmp(arg3,"reset") &&
+					!strcasecmp(arg3,"off") &&
+					!strcasecmp(arg3,"default"))
+				{
+					CmdBadArg("Bad skin name ",arg3," passed in!\nAllowed skins: neo, asmith (or reset).\n");
+					return #TRUE;
+				}
+
+				// Normalize "reset"/"off"/"default" to an empty string,
+				// which Admin_SetSkin treats as a reset.
+				if (!strcasecmp(arg3,"reset") ||
+					!strcasecmp(arg3,"off") ||
+					!strcasecmp(arg3,"default"))
+				{
+					arg3 = "";
+				}
+
+				// No client argument -- act on currently selected target
+				if (num_args == 3)
+				{
+					Admin_SetSkin(arg3);
+					return #TRUE;
+				}
+
+				// Parse given client argument
+				targ = getclient(arg4);
+				if (targ)
+				{
+					self.admin_kick = targ;
+					Admin_SetSkin(arg3);
+					return #TRUE;
+				}
+				else
+				{
+					CmdClientErr(arg4);
+					return #TRUE;
+				}
+			}
+            else if (!strcasecmp(arg2,"cmnd")) // CMND
 			{
 				// No argument
 				if (num_args == 2)
@@ -2518,7 +2571,84 @@ float(float num_args, string arg1, string arg2, string arg3, string arg4, string
 		// Not a recognized game command 
 		CmdBadArg("«·ÌÂ: Unrecognized command ¢",arg2,"¢ passed in!\nUse ¢cmd help game¢ to see avaliable commands.\n");
 		return #TRUE;
-	}/*
+	}
+	// STAL: `modify [classname]` -- build a custom class pre-seeded
+	// with a stock class's loadout.
+	//
+	// With no arg: requires the player to currently be a stock class; uses
+	// self.playerclass as the modify origin. This is the legacy bare-modify
+	// behavior, formerly handled by the TF_MODIFY impulse + alias; moved
+	// here so that `modify <classname>` (which couldn't work via impulse
+	// alias, since aliases swallow the arg before it reaches the server)
+	// shares the same code path.
+	//
+	// With an arg: resolves arg2 to a PC_* value and uses that as the modify
+	// origin. Works regardless of current playerclass.
+	else if (!strcasecmp(arg1, "modify"))
+	{
+		local float resolved_pc;
+
+		if (num_args < 2)
+		{
+			// Bare `modify`: use current stock playerclass.
+			if (self.playerclass < #PC_SCOUT)
+			{
+				sprint(self, #PRINT_HIGH, "Sorry, you must be a stock class to use this command.\n");
+				return #TRUE;
+			}
+			if (self.playerclass > #PC_ENGINEER)
+			{
+				sprint(self, #PRINT_HIGH, "Sorry, you must be a stock class to use this command.\n");
+				return #TRUE;
+			}
+			resolved_pc = self.playerclass;
+		}
+		else
+		{
+			// `modify <classname>`: resolve arg2 to a PC_* value.
+			resolved_pc = 0;
+			if (!strcasecmp(arg2, "scout"))
+				resolved_pc = #PC_SCOUT;
+			else if (!strcasecmp(arg2, "sniper"))
+				resolved_pc = #PC_SNIPER;
+			else if (!strcasecmp(arg2, "soldier"))
+				resolved_pc = #PC_SOLDIER;
+			else if (!strcasecmp(arg2, "demoman"))
+				resolved_pc = #PC_DEMOMAN;
+			else if (!strcasecmp(arg2, "medic"))
+				resolved_pc = #PC_MEDIC;
+			else if (!strcasecmp(arg2, "hwguy"))
+				resolved_pc = #PC_HVYWEAP;
+			else if (!strcasecmp(arg2, "pyro"))
+				resolved_pc = #PC_PYRO;
+			else if (!strcasecmp(arg2, "spy"))
+				resolved_pc = #PC_SPY;
+			else if (!strcasecmp(arg2, "engineer"))
+				resolved_pc = #PC_ENGINEER;
+
+			if (resolved_pc == 0)
+			{
+				sprint(self, #PRINT_HIGH, "Unknown class: ");
+				sprint(self, #PRINT_HIGH, arg2);
+				sprint(self, #PRINT_HIGH, "\nValid classes: scout sniper soldier demoman medic hwguy pyro spy engineer\n");
+				return #TRUE;
+			}
+		}
+
+		// Set up the respawn-to-modify-menu state.
+		self.modify_origin_class = resolved_pc;
+		self.nextpc = #PC_CUSTOM;
+		self.done_custom = self.done_custom | #CUSTOM_ON_SPAWN;
+		self.done_custom = self.done_custom | #CUSTOM_MODIFY;
+
+		sprint(self, #PRINT_HIGH, "After dying, you will return as a Custom ");
+		st = TeamFortress_GetClassName(resolved_pc);
+		st = colstr(st, #COLSTR_RED);
+		sprint(self, #PRINT_HIGH, st, "\n");
+
+		return #TRUE;
+	}
+/*
 	else if (!strcasecmp(arg1,"summon")) // SUMMON
 	{
 		if (num_args == 1) // We didnt specify something to summon

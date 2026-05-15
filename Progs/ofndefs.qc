@@ -303,7 +303,7 @@
 
 //#define FIXES_FOR_FLOATINGBUILDS
 
-#define SUICIDE_RESPAWN_DELAY 10 // If ppl complain, set it to 8 :P Original was 5
+#define SUICIDE_RESPAWN_DELAY 5 // If ppl complain, set it to 8 :P Original was 5 //STAL: ppl complained; it was me
 
 #define DEFAULT_CYCLEDIR cpcycle // Default was "qwmcycle"
 #define UNABLE_TOVOTE_FORSAME_MAP
