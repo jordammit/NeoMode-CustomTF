@@ -87,7 +87,7 @@ Suggested launch parameters: `"pqwsv.exe" -mem 96 +gamedir fortress +exec server
  * Neo Mode authored by [Pulseczar](https://github.com/Pulseczar1)  
  * Idea by =Stg= Gnarler and Snake[cp]  
  * Event messages by Major Major Major Major  
- * Continued development by []STALLION[ / jordammit](https://github.com/jordammit/)  
+ * Continued development by [STALLION / jordammit](https://github.com/jordammit/)  
 
 ### All Others
 [ProzacTF by OfteN](https://gitlab.com/prozac-customtf/prozac-customtf-mod)  
