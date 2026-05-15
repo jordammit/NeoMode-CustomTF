@@ -68,16 +68,18 @@ G:\PQWSV\dependencies\lib
 
 ## Running the server
 
+No matter what OS you end up using, **please edit the `server.cfg` file to change the RCON PASSWORD!!**  
+
+Suggested launch parameters: `"pqwsv.exe" -mem 96 +gamedir fortress +exec server.cfg +serverinfo neo 1 +sv_maxdownloadrate 10000000`  
+
 ### Linux
- * In your Quake directory, execute: `./runShakaCuTF.sh public` <br />
- * Replace `public` with `test` for a private server.
+ * Copy `runNeoCuTF.sh` (Bash script) and `fortress` folder **from** this repo's `Scripts` directory **to** your Quake server directory.  
+ * In your Quake server directory, execute: `./runNeoCuTF.sh public` <br />
+ * Replace `public` with `test` for a private server.  
 
 ### Windows
-Suggested launch parameters: `"pqwsv.exe" -mem 96 +gamedir fortress +exec server.cfg +serverinfo neo 1 +sv_maxdownloadrate 10000000`  
-  
- * The parameter `serverinfo neo 1` can of course be set in a config, but since this fork is centered on Neo Mode development, it's good to ensure that this is forced to be set each time the server initializes.  
-  
- * The parameter `sv_maxdownloadrate 10000000` ensures any client connecting to the server receives the fastest possible download speed (at the time of writing) that MVDSV + QW protocol can support.
+ * Copy `runNeoCuTF.bat` (Batch file) and `fortress` folder **from** this repo's `Scripts` directory **to** your Quake server directory.
+ * In your Quake server directory, run the `runNeoCuTF.bat` file. <br />
 
 ## Credits
 
