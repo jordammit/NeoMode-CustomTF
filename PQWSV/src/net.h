@@ -210,6 +210,8 @@ int		UDP_OpenSocket (unsigned short int port);
 
 #define	MAX_LATENT	32
 
+#define MAX_DUPLICATE_PACKETS (3) //STAL
+
 typedef struct
 {
 	netsrc_t	sock;
@@ -234,6 +236,7 @@ typedef struct
 	// bandwidth estimator
 	double		cleartime;			// if curtime > nc->cleartime, free to go
 	double		rate;				// seconds / byte
+    int         dupe;               // STAL: duplicate packets to send (0 = no duplicates, as normal) - matches MVDSV 1.11
 
 	// sequencing variables
 	int			incoming_sequence;

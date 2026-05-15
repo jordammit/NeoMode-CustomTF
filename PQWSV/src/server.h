@@ -262,6 +262,7 @@ typedef struct client_s
 #endif
 	int				downloadsize;			// total bytes
 	int				downloadcount;			// bytes sent
+    int             dupe;                   //STAL: duplicate packets requested
 
 	// demo download list for internal cmd dl function
 	// Added by VVD {

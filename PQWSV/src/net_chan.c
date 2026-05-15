@@ -305,7 +305,13 @@ void Netchan_Transmit (netchan_t *chan, int length, byte *data)
 	//zoid, no input in demo playback mode
 	if (!cls.demoplayback)
 #endif
-		NET_SendPacket (chan->sock, send.cursize, send.data, chan->remote_address);
+ //STAL: added the below for loop - should mimic MVDSV 1.11 SendPacket behavior
+{
+    int dup;
+    for (dup = 0; dup <= chan->dupe; ++dup) {
+        NET_SendPacket (chan->sock, send.cursize, send.data, chan->remote_address);
+    }
+}
 
 	if (chan->cleartime < curtime)
 		chan->cleartime = curtime + send.cursize * chan->rate;

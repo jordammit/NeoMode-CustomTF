@@ -42,7 +42,7 @@ cvar_t sv_warnmodels = { "sv_warnmodels","0" };
 // OfN End
 
 #ifdef FTE_PEXT_CHUNKEDDOWNLOADS
-cvar_t  sv_downloadchunksperframe = {"sv_downloadchunksperframe", "2"};
+cvar_t  sv_downloadchunksperframe = {"sv_downloadchunksperframe", "30"}; //STAL: Raise this from 2 to 30 - matches MVDSV 1.11
 #endif
 
 #ifdef FTE_PEXT2_VOICECHAT
@@ -1023,6 +1023,8 @@ void SV_CompleteDownoload(void)
 	// qqshka: set normal rate
 	val = Info_Get (&sv_client->_userinfo_ctx_, "rate");
 	sv_client->netchan.rate = 1. / SV_BoundRate(false,	Q_atoi(*val ? val : "99999"));
+    // STAL: backport duplicate packets setting
+	sv_client->netchan.dupe = sv_client->dupe;
 
 	if (sv_client->is_special_download)
 	{
@@ -1071,9 +1073,9 @@ void SV_NextChunkedDownload(int chunknum, int percent, int chunked_download_numb
 		return;
 	}
 
-	if (sv_client->download_chunks_perframe)
+	//if (sv_client->download_chunks_perframe) //STAL: ignore chunk-cap check when download_chunks_perframe > 0 - MVDSV 1.11 applies this unconditionally.
 	{
-		int maxchunks = bound(1, (int)sv_downloadchunksperframe.value, 4);
+		int maxchunks = bound(1, (int)sv_downloadchunksperframe.value, 30); //STAL: bumped to 30 from 4 - matches MVDSV 1.11
 		// too much requests or client sent something wrong
 		if (sv_client->download_chunks_perframe >= maxchunks || chunked_download_number < 1)
 			return;
@@ -1494,6 +1496,8 @@ static void Cmd_Download_f(void)
 	// set donwload rate
 	val = Info_Get (&sv_client->_userinfo_ctx_, "drate");
 	sv_client->netchan.rate = 1. / SV_BoundRate(true, Q_atoi(*val ? val : "99999"));
+    // disable duplicate packet setting while downloading - from MVDSV 1.11 -STAL
+	sv_client->netchan.dupe = 0;
 
 	// all checks passed, start downloading
 
