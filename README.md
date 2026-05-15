@@ -2,7 +2,6 @@
 This is a branch of Shaka's latest version of CustomTF, for Quake Team Fortress, made in early 2009. The purpose of **this** fork is to further develop Neo Mode (which was removed from newer versions of CustomTF/ProzacTF) and - like the repo this is forked from - get this older build to run on a modern server executable (in this case, MVDSV). This build requires a modified version of MVDSV (PQWSV) in order to speed up integration, created by Often. Additional edits and additions to PQWSV were made by Pulseczar to further support the older build.
 
 Forked from Pulse's repository: https://github.com/Pulseczar1/Shaka-CustomTF-2009<br />
-MVDSV repository:   https://github.com/QW-Group/mvdsv <br />
 
 ## Setting Up
 
