@@ -2744,6 +2744,10 @@ void(entity client, float ammount) BackFlash;
 .float cns_filter; // STAL: classnames of entities moving through a trigger - see triggers.qc
 .float det_force_timer; // STAL: force detpack timer of detpack touching a trigger - see triggers.qc
 
+.float rtd_cooldown; // STAL: next time `cmd rtd` is allowed for this player - see rtd.qc
+.float rtd_instagib;       // STAL: RTD instagib active until this time - supporting hook in cpstuff.qc (GetDamageOutFactor)
+.float rtd_chainlightning; // STAL: RTD chain lightning active until this time - supporting hook in combat.qc (TF_T_Damage)
+
 // vote entity types
 #define VOTE_NONE			0
 #define VOTE_PUNISH 		1

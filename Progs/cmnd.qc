@@ -128,6 +128,9 @@ float(string mapstr) validatemap;
 float(float itemnum, float page, float permanent) DisableItem;
 float(float itemnum, float page, float permanent) EnableItem;
 
+void(entity p) RTD_Begin; // STAL: RTD - see rtd.qc
+void(entity p, float pick) RTD_ForceEffect; // STAL: Admin cmd to force RTD status effect
+
 float(float itemnum,float page, float permanent) MakeFree;
 float(float itemnum,float page, float permanent) DelFree;
 
@@ -1164,6 +1167,50 @@ float(float num_args, string arg1, string arg2, string arg3, string arg4, string
 				{
 					self.admin_kick = targ;
 					Admin_Assign(tmpf);
+					return #TRUE;
+				}
+				else
+				{
+					CmdClientErr(arg4);
+					return #TRUE;
+				}
+			}
+			else if (!strcasecmp(arg2,"rtd")) // STAL: force a rtd dice roll status on a player
+			{
+				// No effect number argument: print usage.
+				if (num_args == 2)
+				{
+					sprint(self, #PRINT_HIGH, "Usage: cmd admin rtd <effect_num> [player]\n");
+					sprint(self, #PRINT_HIGH, "Effect number is an integer. See rtd.qc for the list.\n");
+					sprint(self, #PRINT_HIGH, "Player defaults to yourself if omitted.\n");
+					return #TRUE;
+				}
+
+				// Validate the effect number.
+				tmpf = stof(arg3);
+				if (tmpf < 0 || tmpf > 24)
+				{
+					CmdBadArg("RTD: Bad effect number ¢",arg3,"¢ passed in!\nValid range is 0-24.\n");
+					return #TRUE;
+				}
+
+				// No player argument: apply to self.
+				if (num_args == 3)
+				{
+					RTD_ForceEffect(self, tmpf);
+					return #TRUE;
+				}
+
+				// Resolve the target player.
+				targ = getclient(arg4);
+				if (targ)
+				{
+					if (targ.classname != "player")
+					{
+						sprint(self, #PRINT_HIGH, "RTD: Target must be a player.\n");
+						return #TRUE;
+					}
+					RTD_ForceEffect(targ, tmpf);
 					return #TRUE;
 				}
 				else
@@ -2688,6 +2735,14 @@ float(float num_args, string arg1, string arg2, string arg3, string arg4, string
 		CmdBadArg("”ıÌÌÔÓ: Bad argument ¢",arg2,"¢ passed in!\nUse ¢cmd help summon¢ to see possible choices.\n");
 		return #TRUE;
 	}*/
+
+	// STAL: Roll The Dice. Animated dice in centerprint,
+	// then a random status effect on the roller. See rtd.qc.
+	if (!strcasecmp(arg1,"rtd"))
+	{
+		RTD_Begin(self);
+		return #TRUE;
+	}
 
 	// Not a command handled by us..
 	return #FALSE;

@@ -11,6 +11,7 @@ void (float startup) UpdateInfos;
 void() ResetVoteEnt;
 void() PrecacheRuneModels;
 void() ReteamTimer;
+void() RTD_Init;  // STAL: RTD entity mode init; see rtd.qc
 //==============//
 
 void() InitBodyQue;
@@ -587,6 +588,10 @@ void() worldspawn =
 	
 	// Init environment stuff, in environ.qc
 	InitEnvironment();
+
+	// STAL: RTD ent mode setup. Precaches dice model and
+	// spawns the entmode watcher entity. See rtd.qc.
+	RTD_Init();
 };
 
 void(float tno, float scoretoadd) TeamFortress_TeamIncreaseScore;

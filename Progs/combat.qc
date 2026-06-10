@@ -41,6 +41,10 @@ float(entity attacker,entity targ) GetDamageOutFactor; //For calculating quad, b
 
 void(entity corpse, float damage, vector where, entity attacker, float directdmg) DamageCorpse;
 
+// STAL: RTD Chain Lightning strike helper, called from
+// TF_T_Damage. Defined in rtd.qc.
+void(entity attacker, entity origin_targ) RTD_ChainLightning_Strike;
+
 //void(entity tfield, vector where, entity thing) FieldExplosion;
 //void(entity field) PutFieldWork;
 
@@ -793,6 +797,19 @@ void(entity targ, entity inflictor, entity attacker, float damage, float T_flags
 	self = targ;
 	if (self.th_pain) self.th_pain (attacker, take);
 	self = te;
+
+	// STAL: RTD Chain Lightning hook. If attacker has the
+	// chain-lightning effect active and they just damaged
+	// a player (not a sentry, not themselves, not world),
+	// fire bolts at nearby enemies. See rtd.qc.
+	if (attacker.rtd_chainlightning > time &&
+	    attacker.classname == "player" &&
+	    targ.classname == "player" &&
+	    attacker != targ &&
+	    targ.health > 0)
+	{
+		RTD_ChainLightning_Strike(attacker, targ);
+	}
 };
 
 #ifdef COOL_GIBS

@@ -1739,6 +1739,13 @@ float(entity attacker, entity targ) GetDamageOutFactor =
 {
 	local float factor;
 	factor = 1;
+
+	// STAL: RTD Instagib hook. Massive dmg multiplier
+	// returned early so no other modifier matters - the
+	// target dies in one hit regardless of weapon. See
+	// rtd.qc (RTD_InstagibBegin).
+	if (attacker.rtd_instagib > time)
+		return 9999;
 	
 	//WK 8/4/7 Changed the code so that only the best damage multiplier works now.
 	if (attacker.super_damage_finished > time) {

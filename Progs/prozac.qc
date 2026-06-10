@@ -4,8 +4,8 @@
 =========================================================//
  ProZac Message Of The Day (MOTD) and un/related stuff :)
 =========================================================*/
-                                             // v2605 (-|-) [half-month]
-#define MSG_OFTEN_CUTFVERSION "Running Ξεο Νοδε φ”’—?ƒ‚\nForked from progs build 272 Ϋ02―02―2009έ\n"
+                                             // v2606w1
+#define MSG_OFTEN_CUTFVERSION "Running Ξεο Νοδε φ”’χ“\nForked from progs build 272 Ϋ02―02―2009έ\n"
 
 #define MSG_INFO "\nType Άcmd helpΆ to see additional client commands.\n"
 

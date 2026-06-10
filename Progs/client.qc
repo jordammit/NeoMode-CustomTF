@@ -332,7 +332,7 @@ void () PrematchBegin =
 {
 	if (prematch)
 	{
-		bprint(#PRINT_HIGH,"œ The game has now started! œ\n");
+		bprint(#PRINT_HIGH,"? The game has now started! ?\n");
 		other = find(world, classname, "player");
 		while (other != world)
 		{
@@ -2402,6 +2402,13 @@ void() PutClientInServer =
 	self.has_holo = 0;
 	self.is_killed = #FALSE;
 
+	// STAL: clear rtd cooldown on respawn so player can
+	// immediately use `rtd` cmd or pick up a die after
+	// dying. Without this, a player who dies mid-effect
+	// (or mid-cooldown) would stay locked out until the
+	// time naturally expired. See rtd.qc.
+	self.rtd_cooldown = 0;
+
 	self.message = ""; // reset for gremlin and cool gibs (heads)
 
 	//////////////////
@@ -3254,13 +3261,13 @@ void() PlayerPreThink =
 		if (self.duration < time)
 		{
 			if (self.#cprint_fx & 1)
-				CenterPrint(self,"žžžžžžžžžžžžžžžžžŸ\nÃåáóåæéòå Áððìéåó\nžžžžžžžžžžžžžžžžžŸ");
+				CenterPrint(self,"??????????????????\nÃåáóåæéòå Áððìéåó\n??????????????????");
 			else
-				CenterPrint(self,"žžžžžžžžžžžžžžžžžŸ\nCeasefire Applies\nžžžžžžžžžžžžžžžžžŸ");
+				CenterPrint(self,"??????????????????\nCeasefire Applies\n??????????????????");
 			self.duration = time + #CEASEFIRE_CPRINT_RATE;
 				self.#cprint_fx = self.#cprint_fx + 1;
 		}
-																   
+		
 		if (!GoodCeasefireImpulse(self.impulse)) //See admin.qc
 			self.impulse = 0;
 		self.button0 = 0;
