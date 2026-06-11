@@ -7,7 +7,7 @@ Forked from Pulse's repository: https://github.com/Pulseczar1/Shaka-CustomTF-200
 
 ### Scripts
 
-Copy the scripts and configuration files in `Scripts` into your Quake directory. The directory structure should be preserved. After you put those files where they go, edit them to your needs and preferences.
+Copy the scripts and configuration files in `Other` into your Quake directory. The directory structure should be preserved. After you put those files where they go, edit them to your needs and preferences.
 
 ### Progs/QuakeC Compiler
 
@@ -73,12 +73,12 @@ No matter what OS you end up using, **please edit the `server.cfg` file to chang
 Suggested launch parameters: `"pqwsv.exe" -mem 96 +gamedir fortress +exec server.cfg +serverinfo neo 1 +sv_maxdownloadrate 10000000`  
 
 ### Linux
- * Copy `runNeoCuTF.sh` (Bash script) and `fortress` folder **from** this repo's `Scripts` directory **to** your Quake server directory.  
+ * Copy `runNeoCuTF.sh` (Bash script) and `fortress` folder **from** this repo's `Other` directory **to** your Quake server directory.  
  * In your Quake server directory, execute: `./runNeoCuTF.sh public` <br />
  * Replace `public` with `test` for a private server.  
 
 ### Windows
- * Copy `runNeoCuTF.bat` (Batch file) and `fortress` folder **from** this repo's `Scripts` directory **to** your Quake server directory.
+ * Copy `runNeoCuTF.bat` (Batch file) and `fortress` folder **from** this repo's `Other` directory **to** your Quake server directory.
  * In your Quake server directory, run the `runNeoCuTF.bat` file. <br />
 
 ## Credits
