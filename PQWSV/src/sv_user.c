@@ -72,6 +72,16 @@ extern cvar_t	sv_kicktop;
 extern cvar_t	sv_speedcheck; //bliP: 24/9
 //<-
 
+//STAL: forced skin download
+extern cvar_t sv_force_skin_download;
+extern cvar_t sv_force_skin_list;
+#define MAX_FORCED_SKINS    32
+#define FORCED_SKIN_NAMELEN 32
+static char forced_skin_names[MAX_FORCED_SKINS][FORCED_SKIN_NAMELEN];
+static int  forced_skin_count;
+static qbool SV_DownloadNextFile (void);
+static int   SV_ForceSkin_Parse (void);
+
 static void OnChange_sv_maxpitch (cvar_t *var, char *str, qbool *cancel);
 static void OnChange_sv_minpitch (cvar_t *var, char *str, qbool *cancel);
 cvar_t	sv_maxpitch = {"sv_maxpitch", "80", 0, OnChange_sv_maxpitch};
@@ -815,6 +825,61 @@ static void Cmd_Spawn_f (void)
 	ClientReliableWrite_Byte (sv_client, STAT_MONSTERS);
 	ClientReliableWrite_Long (sv_client, PR_GLOBAL(killed_monsters));
 
+    // STAL: begin forced skin downloads
+    // This should hopefully help new players see the needed skins on
+    // first connect rather than `base` skin, THEN download occurs for
+    // needed skins on next match.
+	if ((int)sv_force_skin_download.value)
+	{
+		// Blunt mode: force every listed skin to download unconditionally,
+		// chained one-at-a-time through SV_DownloadNextFile.
+		sv_client->forced_skin_num = 1;
+		SV_DownloadNextFile ();   // kicks off the first; rest follow on completion
+	}
+	else
+	{
+		// Clean mode: inject the listed skins as synthetic userinfo on unused
+		// high slots so the client's native "skins" routine checks its own disk
+		// and downloads ONLY what's missing (no redundant transfers, no errors).
+		int fs, slot;
+		SV_ForceSkin_Parse ();
+		// Use the top of the slot range downward so we don't collide with real
+		// players (who fill from low indices). These slots have no client_t and
+		// no entity referencing them, so they're invisible aside from the skin.
+		for (fs = 0, slot = MAX_CLIENTS - 1; fs < forced_skin_count && slot >= 0; fs++, slot--)
+		{
+			char info[MAX_EXT_INFO_STRING];
+
+			// skip slots actually occupied by a connected client
+			if (svs.clients[slot].state >= cs_connected)
+				continue;
+
+            snprintf (info, sizeof(info), "\\name\\%s\\skin\\%s",
+		        forced_skin_names[fs], forced_skin_names[fs]);
+
+            ClientReliableWrite_Begin (sv_client, svc_updatefrags, strlen(info) + 32);
+            ClientReliableWrite_Byte  (sv_client, slot);
+            ClientReliableWrite_Short (sv_client, 0);
+
+            ClientReliableWrite_Byte  (sv_client, svc_updateping);
+            ClientReliableWrite_Byte  (sv_client, slot);
+            ClientReliableWrite_Short (sv_client, 0);
+
+            ClientReliableWrite_Byte  (sv_client, svc_updatepl);
+            ClientReliableWrite_Byte  (sv_client, slot);
+            ClientReliableWrite_Byte  (sv_client, 0);
+
+            ClientReliableWrite_Byte  (sv_client, svc_updateentertime);
+            ClientReliableWrite_Byte  (sv_client, slot);
+            ClientReliableWrite_Float (sv_client, 0);
+
+            ClientReliableWrite_Byte  (sv_client, svc_updateuserinfo);
+            ClientReliableWrite_Byte  (sv_client, slot);
+            ClientReliableWrite_Long  (sv_client, 0);
+            ClientReliableWrite_String(sv_client, info);
+		}
+	}
+
 	// get the client to check and download skins
 	// when that is completed, a begin command will be issued
 	ClientReliableWrite_Begin (sv_client, svc_stufftext, 8);
@@ -948,9 +1013,74 @@ static void Cmd_Begin_f (void)
 
 	if (SV_IssueIntegration(sv_client))
 		Sys_Printf("Sent Integration to ProzacQW client on connection\n");
+    
+    // STAL: tear down the synthetic forced skin slots after the client has
+	// finished its skin download walk. This neat little check will send an
+	// empty userinfo for synth slots solely to remove them from scoreboard
+	if (!(int)sv_force_skin_download.value)
+	{
+		int fs, slot;
+		SV_ForceSkin_Parse ();
+		for (fs = 0, slot = MAX_CLIENTS - 1; fs < forced_skin_count && slot >= 0; fs++, slot--)
+		{
+			if (svs.clients[slot].state >= cs_connected)
+				continue;
+			ClientReliableWrite_Begin (sv_client, svc_updateuserinfo, 8);
+			ClientReliableWrite_Byte  (sv_client, slot);
+			ClientReliableWrite_Long  (sv_client, 0);
+			ClientReliableWrite_String(sv_client, "");   // empty = slot vacated
+		}
+	}
 }
 
 //=============================================================================
+
+/* STAL   ----   //
+==================
+SV_ForceSkin_Parse
+
+Parses sv_force_skin_list ("skin1;skin2;skin3") into a static array of skin
+base-names. Returns the count. Names are sanitized: empty tokens and anything
+containing path separators or quotes are skipped, so the list can only ever
+reference files inside the skins/ directory.
+==================
+*/
+static int SV_ForceSkin_Parse (void)
+{
+	const char *s = sv_force_skin_list.string;
+	int n = 0;
+
+	forced_skin_count = 0;
+	if (!s || !*s)
+		return 0;
+
+	while (*s && n < MAX_FORCED_SKINS)
+	{
+		char *out = forced_skin_names[n];
+		int len = 0;
+		qbool bad = false;
+
+		while (*s && *s != ';')
+		{
+			char c = *s++;
+			// reject anything that could escape skins/ or break the path
+			if (c == '/' || c == '\\' || c == '"' || c == ':' || c == '.')
+				bad = true;
+			if (len < FORCED_SKIN_NAMELEN - 1)
+				out[len++] = c;
+		}
+		out[len] = 0;
+
+		if (*s == ';')
+			s++;
+
+		if (len > 0 && !bad)
+			n++;
+	}
+
+	forced_skin_count = n;
+	return n;
+}
 
 /*
 ==================
@@ -963,7 +1093,28 @@ static qbool SV_DownloadNextFile (void)
 	char		*name, n[MAX_OSPATH];
 	unsigned char	all_demos_downloaded[]	= "All demos downloaded.\n";
 	unsigned char	incorrect_demo_number[]	= "Incorrect demo number.\n";
+    
+    // STAL: force skin downloads if enabled
+	if (sv_client->forced_skin_num > 0)
+	{
+		// (re)parse each time we're idle-entering so on-the-fly list edits apply
+		if (sv_client->forced_skin_num == 1)
+			SV_ForceSkin_Parse ();
 
+		while (sv_client->forced_skin_num <= forced_skin_count)
+		{
+			const char *skin = forced_skin_names[sv_client->forced_skin_num - 1];
+			sv_client->forced_skin_num++;
+			if (!*skin)
+				continue;
+			snprintf (n, sizeof(n), "download skins/%s.pcx\n", skin);
+			ClientReliableWrite_Begin (sv_client, svc_stufftext, strlen(n) + 2);
+			ClientReliableWrite_String (sv_client, n);
+			return true;
+		}
+		sv_client->forced_skin_num = 0;   // list exhausted; fall through to demos
+	}
+    
 	switch (sv_client->demonum[0])
 	{
 	case 1:

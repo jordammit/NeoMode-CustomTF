@@ -187,6 +187,10 @@ cvar_t  sv_bspversion = {"sv_bspversion", "1", CVAR_ROM};
 // If set, don't send broadcast messages, entities or player info to ServeMe bot
 cvar_t sv_serveme_fix = { "sv_serveme_fix", "1", CVAR_ROM };
 
+// STAL: force skin downloads
+cvar_t sv_force_skin_download = {"sv_force_skin_download", "0"}; //0 - don't force; 1 - force dl at each mapload (messy, leaves .tmp files behind for player)
+cvar_t sv_force_skin_list     = {"sv_force_skin_list", ""}; //forced dl skin filename list - semicolon separated, do not include file extension
+
 #ifdef FTE_PEXT_FLOATCOORDS
 cvar_t sv_bigcoords = {"sv_bigcoords", "", CVAR_SERVERINFO};
 #endif
@@ -3360,6 +3364,10 @@ void SV_InitLocal (void)
 	Cvar_Register (&sv_maxdownloadrate);
 	Cvar_Register (&sv_serverip);
 	Cvar_Register (&sv_forcespec_onfull);
+    
+    //STAL: register forced skin cvars
+    Cvar_Register (&sv_force_skin_download);
+    Cvar_Register (&sv_force_skin_list);
 
 #ifdef SERVERONLY
 	Cvar_Register (&rcon_password);

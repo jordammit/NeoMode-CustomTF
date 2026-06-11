@@ -179,6 +179,10 @@ typedef struct
 #define LOGIN_CHALLENGE_LENGTH     128
 #define LOGIN_MIN_RETRY_TIME         5    // 1 login attempt per x seconds
 
+// STAL: force skin downloads
+#define MAX_FORCED_SKINS    32
+#define FORCED_SKIN_NAMELEN 32
+
 typedef struct client_s
 {
 	sv_client_state_t	state;
@@ -263,6 +267,9 @@ typedef struct client_s
 	int				downloadsize;			// total bytes
 	int				downloadcount;			// bytes sent
     int             dupe;                   //STAL: duplicate packets requested
+    int             forced_slots[MAX_FORCED_SKINS];  // STAL: synthetic slot indices announced at spawn
+    int             forced_slot_count;               //    <- how many synth slots were actually used
+    int             forced_skin_num;        //STAL: index for parsing sv_force_skin_list
 
 	// demo download list for internal cmd dl function
 	// Added by VVD {

@@ -421,6 +421,18 @@ void PR_ExecuteProgram (func_t fnum)
 	edict_t *ed;
 	int exitdepth;
 	eval_t *ptr;
+    
+	// STAL: As far as I can tell, PROG_TO_EDICT() does no range checking 
+    // (unlike EDICT_NUM), so a bad progs-controlled ent ref produces a wild 
+    // 'ed' pointer. Furthermore, it seems PR_EDICT_VALID() mirrors the 
+    // checks in NUM_FOR_EDICT(): in-range and aligns to a real edict slot. 
+    // Use max_edicts (alloc'd ceiling) rather than num_edicts so we don't
+    // false-positive on valid-but-unused slots, while hopefully still 
+    // staying inside the allocated array.
+#define PR_EDICT_VALID(e) ( \
+	(byte *)(e) >= (byte *)sv.edicts && \
+	(byte *)(e) < (byte *)sv.edicts + sv.max_edicts * pr_edict_size && \
+	(((byte *)(e) - (byte *)sv.edicts) % pr_edict_size) == 0 )
 
 	if (!fnum || fnum >= progs->numfunctions)
 	{
@@ -628,10 +640,30 @@ void PR_ExecuteProgram (func_t fnum)
 		case OP_STOREP_FLD:		// integers
 		case OP_STOREP_S:
 		case OP_STOREP_FNC:		// pointers
+			// STAL: b->_int is a byte offset from sv.edicts and is fully
+			// progs-controlled. Validate it lands within the allocated edict
+			// array before writing, otherwise this is an arbitrary write.
+			if (b->_int < 0 ||
+			    b->_int + (int)sizeof(int) > sv.max_edicts * pr_edict_size)
+			{
+				Con_Printf("OP_STOREP bad ptr ofs %d in %s\n",
+				    b->_int,
+				    pr_xfunction ? PR1_GetString(pr_xfunction->s_name) : "?");
+				break;
+			}
 			ptr = (eval_t *)((byte *)sv.edicts + b->_int);
 			ptr->_int = a->_int;
 			break;
 		case OP_STOREP_V:
+			// STAL: same as above, but writes 3 floats so needs room for all 3.
+			if (b->_int < 0 ||
+			    b->_int + (int)(3 * sizeof(float)) > sv.max_edicts * pr_edict_size)
+			{
+				Con_Printf("OP_STOREP_V bad ptr ofs %d in %s\n",
+				    b->_int,
+				    pr_xfunction ? PR1_GetString(pr_xfunction->s_name) : "?");
+				break;
+			}
 			ptr = (eval_t *)((byte *)sv.edicts + b->_int);
 			ptr->vector[0] = a->vector[0];
 			ptr->vector[1] = a->vector[1];
@@ -643,8 +675,22 @@ void PR_ExecuteProgram (func_t fnum)
 #ifdef PARANOID
 			NUM_FOR_EDICT(ed);		// make sure it's in range
 #endif
+			// STAL: validate the entity reference itself, not just the field
+			// offset. It looks like OP_ADDRESS hands the computed pointer back 
+            // to progs, which can then write thru it via OP_STOREP_*, so a bad 
+            // edict here is an arbitrary-write primitive.
+			if (!PR_EDICT_VALID(ed))
+			{
+				Con_Printf("OP_ADDRESS bad edict ref %d in %s\n",
+				    a->edict,
+				    pr_xfunction ? PR1_GetString(pr_xfunction->s_name) : "?");
+				c->_int = 0;
+				break;
+			}
 			if (ed == (edict_t *)sv.edicts && sv.state == ss_active)
 				PR_RunError ("assignment to world entity");
+            if (b->_int < 0 || b->_int >= progs->entityfields)
+                PR_RunError ("OP_ADDRESS: bad field offset %d", b->_int);
 			c->_int = (byte *)((int *)&ed->v + PR_FIELDOFS(b->_int)) - (byte *)sv.edicts;
 			break;
 
@@ -657,21 +703,57 @@ void PR_ExecuteProgram (func_t fnum)
 #ifdef PARANOID
 			NUM_FOR_EDICT(ed);		// make sure it's in range
 #endif
-			//need for checking 'cmd mmode player N', if N >= 0x10000000 =(signed)=> negative
-			if (b->_int >= 0)
+			// STAL: validate the entity reference. The field offset 284 I'd seen
+			// in the crashes is actually IN range of entityfields, so the real
+			// fault is a bad 'ed' from an unchecked a->edict. Guard that here.
+			if (!PR_EDICT_VALID(ed))
 			{
-				a = (eval_t *)((int *)&ed->v + PR_FIELDOFS(b->_int));
-				c->_int = a->_int;
-			}
-			else
+				Con_Printf("OP_LOAD bad edict ref %d ofs %d entityfields %d edict_size %d in %s\n",
+				    a->edict, b->_int, progs->entityfields, pr_edict_size,
+				    pr_xfunction ? PR1_GetString(pr_xfunction->s_name) : "?");
 				c->_int = 0;
-			break;
+				break;
+			}
+			//need for checking 'cmd mmode player N', if N >= 0x10000000 =(signed)=> negative
+            if (b->_int < 0 || b->_int >= progs->entityfields)
+            {
+                Con_Printf("OP_LOAD bad offset %d edict %d entityfields %d in %s\n",
+                    b->_int,
+                    a->edict,
+                    progs->entityfields,
+                    pr_xfunction ? PR1_GetString(pr_xfunction->s_name) : "?");
+                c->_int = 0;
+                break;
+            }
+            a = (eval_t *)((int *)&ed->v + PR_FIELDOFS(b->_int));
+            c->_int = a->_int;
+            break;
 
 		case OP_LOAD_V:
 			ed = PROG_TO_EDICT(a->edict);
 #ifdef PARANOID
 			NUM_FOR_EDICT(ed);		// make sure it's in range
 #endif
+			// STAL: validate the entity reference (see OP_LOAD_F note above).
+			if (!PR_EDICT_VALID(ed))
+			{
+				Con_Printf("OP_LOAD_V bad edict ref %d ofs %d entityfields %d edict_size %d in %s\n",
+				    a->edict, b->_int, progs->entityfields, pr_edict_size,
+				    pr_xfunction ? PR1_GetString(pr_xfunction->s_name) : "?");
+				c->vector[0] = c->vector[1] = c->vector[2] = 0;
+				break;
+			}
+            // STAL: -2 because LOAD_V reads 3 consecutive ints
+            if (b->_int < 0 || b->_int >= progs->entityfields - 2)
+            {
+                Con_Printf("OP_LOAD_V bad offset %d edict %d entityfields %d in %s\n",
+                    b->_int,
+                    a->edict,
+                    progs->entityfields,
+                    pr_xfunction ? PR1_GetString(pr_xfunction->s_name) : "?");
+                c->vector[0] = c->vector[1] = c->vector[2] = 0;
+                break;
+            }
 			a = (eval_t *)((int *)&ed->v + PR_FIELDOFS(b->_int));
 			c->vector[0] = a->vector[0];
 			c->vector[1] = a->vector[1];
@@ -759,6 +841,7 @@ void PR_ExecuteProgram (func_t fnum)
 		}
 	}
 
+#undef PR_EDICT_VALID
 }
 
 //=============================================================================
